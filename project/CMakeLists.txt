@@ -1,0 +1,22 @@
+# Add sai2-primitives
+find_package(SAI2-PRIMITIVES REQUIRED)
+include_directories(${SAI2-PRIMITIVES_INCLUDE_DIRS})
+add_definitions(${SAI2-PRIMITIVES_DEFINITIONS})
+
+# create an executable
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HOOPHERO_BINARY_DIR}/project)
+ADD_EXECUTABLE (simviz simviz.cpp ${HOOPHERO_COMMON_SOURCE})
+ADD_EXECUTABLE (controller controller.cpp ${HOOPHERO_COMMON_SOURCE})
+
+# and link the library against the executable
+TARGET_LINK_LIBRARIES (simviz ${HOOPHERO_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
+TARGET_LINK_LIBRARIES (controller ${HOOPHERO_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
+
+# export resources such as model files.
+# NOTE: this requires an install build
+SET(APP_RESOURCE_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources)
+FILE(MAKE_DIRECTORY ${APP_RESOURCE_DIR})
+FILE(COPY world.urdf DESTINATION ${APP_RESOURCE_DIR})
+FILE(COPY panda_arm.urdf DESTINATION ${APP_RESOURCE_DIR})
+
+

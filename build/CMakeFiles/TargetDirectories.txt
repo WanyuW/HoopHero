@@ -1,0 +1,15 @@
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/HoopHero.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/edit_cache.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/rebuild_cache.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/list_install_components.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/install.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/install/local.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/CMakeFiles/install/strip.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/simviz.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/controller.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/edit_cache.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/rebuild_cache.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/list_install_components.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/install.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/install/local.dir
+/Users/wynneweng/Desktop/sai2/apps/HoopHero/build/project/CMakeFiles/install/strip.dir
