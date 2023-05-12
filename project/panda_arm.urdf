@@ -137,10 +137,10 @@
         </geometry>
       </collision> -->
       <visual>
-      	<origin xyz="0 0 0.15" rpy="0 0 0" />
-      	<geometry>
-      	   <sphere radius="0.01"/>
-      	</geometry>
+          <origin xyz="0.0 0.0 0.5" rpy="1.57 0 3" />
+          <geometry>
+              <mesh filename="../../../model/mmp_panda/meshes/visual/Board.obj" scale = "0.4, 0.4, 0.4"/>
+          </geometry>
       </visual>
     </link>
     <joint name="joint1" type="revolute">

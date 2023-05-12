@@ -138,7 +138,7 @@ int main() {
 
 	// create window and make it current
 	glfwWindowHint(GLFW_VISIBLE, 0);
-	GLFWwindow* window = glfwCreateWindow(windowW, windowH, "Panda Example", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(windowW, windowH, "HoopHero", NULL, NULL);
 	glfwSetWindowPos(window, windowPosX, windowPosY);
 	glfwShowWindow(window);
 	glfwMakeContextCurrent(window);
