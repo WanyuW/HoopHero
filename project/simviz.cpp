@@ -25,8 +25,8 @@ using namespace Eigen;
 
 // specify urdf and robots 
 const string world_file = "./resources/world.urdf";
-const string robot_file = "./resources/panda_arm.urdf";
-const string robot_name = "panda";
+const string robot_file = "./resources/mmp_panda.urdf";
+const string robot_name = "mmp_panda";
 const string camera_name = "camera_fixed";
 const string base_link_name = "link0";
 const string ee_link_name = "link7";

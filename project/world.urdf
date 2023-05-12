@@ -2,8 +2,8 @@
 
 <world name="demo_world" gravity="0.0 0.0 -9.81">
 
-	<robot name="panda">
-		<model dir="./resources" path="panda_arm.urdf" name="panda" />
+	<robot name="mmp_panda">
+		<model dir="./resources" path="mmp_panda.urdf" name="mmp_panda" />
 		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	</robot>
 
@@ -58,6 +58,7 @@
 	        </geometry>
 	    </collision>
 	</dynamic_object>
+    
 
 	<light name="light1" type="directional">
 		<position xyz="2.0 -2.0 2.0" />

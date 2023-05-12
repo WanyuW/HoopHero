@@ -137,7 +137,7 @@
         </geometry>
       </collision> -->
       <visual>
-      	<origin xyz="0 0 0.13" rpy="3.14 0 1.57" />
+      	<origin xyz="0 0 0.13" rpy="1.57 0 -1.57" />
       	<geometry>
             <mesh filename="../../../model/panda/meshes/visual/Board.obj" scale = "0.4, 0.4, 0.4"/>
       	</geometry>
