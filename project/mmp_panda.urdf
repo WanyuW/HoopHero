@@ -38,7 +38,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/mmp_panda/meshes/panda_BaseCombo.obj" />
+        <mesh filename="../../../model/mmp_panda/meshes/visual/panda_BaseCombo.obj" />
       </geometry>
     </visual>
   </link>

@@ -12,7 +12,7 @@
 	    <visual>
 	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
 	        <geometry>
-                <mesh filename="../../model/mmp_panda/meshes/visual/court_with_texture.obj" />
+                <mesh filename="../../model/mmp_panda/meshes/visual/court_with_texture.obj" scale = "0.4 0.4 0.4" />
 	        </geometry>
 	    </visual>
 		<collision>
@@ -23,8 +23,8 @@
 	    </collision>
 	</static_object>
 
-	<dynamic_object name="cup">
-		<origin xyz="1.0 0.0 1.0" rpy="0 0 0" />
+	<dynamic_object name="basketball">
+		<origin xyz="1.0 0.0 5.0" rpy="0 0 0" />
 		<inertial>
         	<origin xyz="0 0 0" rpy="0 0 0" />
         	<mass value="10" />
@@ -34,19 +34,19 @@
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/test_objects/meshes/visual/cup.obj" />
+	            <mesh filename="../../model/test_objects/meshes/visual/basketball.obj" />
 	        </geometry>
 	    </visual>
 
-		<visual>
-	        <origin xyz="0 0 0.06" rpy="0 0 0" />
-	        <geometry>
-	            <box size="0.1 0.1 0.15" />
-	        </geometry>
-	        <material name="material">
-		        <color rgba="1 1 1 1.0" />
-	        </material>
-	    </visual>
+<!--		<visual>-->
+<!--	        <origin xyz="0 0 0.06" rpy="0 0 0" />-->
+<!--	        <geometry>-->
+<!--	            <box size="0.1 0.1 0.15" />-->
+<!--	        </geometry>-->
+<!--	        <material name="material">-->
+<!--		        <color rgba="1 1 1 1.0" />-->
+<!--	        </material>-->
+<!--	    </visual>-->
 
 	    <collision>
 	        <origin xyz="0 0 0.06" rpy="0 0 0" />

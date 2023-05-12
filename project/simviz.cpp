@@ -32,7 +32,7 @@ const string base_link_name = "link0";
 const string ee_link_name = "link7";
 
 // dynamic objects information
-const vector<string> object_names = {"cup"};
+const vector<string> object_names = {"basketball"};
 vector<Vector3d> object_pos;
 vector<Vector3d> object_lin_vel;
 vector<Quaterniond> object_ori;
@@ -163,7 +163,7 @@ int main() {
 	glewInitialize();
 
 	// add obj file once 
-	string mesh_filename = "../../model/test_objects/meshes/visual/cup.obj";
+	string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
 	addMesh(graphics, mesh_filename, Vector3d(0.2, -0.2, 0), Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
 
 	// while window is open:
