@@ -137,10 +137,17 @@
         </geometry>
       </collision> -->
       <visual>
+<<<<<<< HEAD
       	<origin xyz="0 0 0.13" rpy="1.57 0 -1.57" />
       	<geometry>
             <mesh filename="../../../model/panda/meshes/visual/Board.obj" scale = "0.4, 0.4, 0.4"/>
       	</geometry>
+=======
+          <origin xyz="0.0 0.0 0.5" rpy="1.57 0 3" />
+          <geometry>
+              <mesh filename="../../../model/mmp_panda/meshes/visual/Board.obj" scale = "0.4, 0.4, 0.4"/>
+          </geometry>
+>>>>>>> eeb68a93348012dd9391032b31d145aba97b9998
       </visual>
     </link>
     <joint name="joint1" type="revolute">
