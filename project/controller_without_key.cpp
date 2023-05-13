@@ -24,7 +24,7 @@ void sighandler(int){runloop = false;}
 #include "redis_keys.h"
 
 // Location of URDF files specifying world and robot information
-const string robot_file = "./resources/panda_arm.urdf";
+const string robot_file = "./resources/mmp_panda.urdf";
 
 enum State 
 {
@@ -81,7 +81,7 @@ int main() {
 	joint_task->_kv = 40.0;
 
 	VectorXd q_init_desired(dof);
-	q_init_desired << -30.0, -15.0, -15.0, -105.0, 0.0, 90.0, 45.0;
+	q_init_desired << -30.0, -15.0, -15.0, -105.0, 0.0, 90.0, 45.0;  ////!!!!!!!
 	q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 

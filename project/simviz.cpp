@@ -13,6 +13,7 @@
 #include "timer/LoopTimer.h"
 #include <GLFW/glfw3.h>  // must be loaded after loading opengl/glew
 #include <signal.h>
+#include <iostream>
 
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
@@ -84,7 +85,7 @@ int main() {
 	Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
 	graphics->_world->setBackgroundColor(66.0/255, 135.0/255, 245.0/255);  // set blue background 	
-	graphics->showLinkFrame(true, robot_name, ee_link_name, 0.15);  // can add frames for different links
+//	graphics->showLinkFrame(true, robot_name, ee_link_name, 0.15);  // can add frames for different links
 	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);  // set the near and far clipping planes 
 
 	// load robots
@@ -163,8 +164,8 @@ int main() {
 	glewInitialize();
 
 	// add obj file once 
-	string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
-	addMesh(graphics, mesh_filename, Vector3d(0.2, -0.2, 0), Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
+//	string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
+//	addMesh(graphics, mesh_filename, Vector3d(0.2, -0.2, 0), Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
 
 	// while window is open:
 	int count = 0;
@@ -174,9 +175,9 @@ int main() {
 	{
 		// add sphere for every nth count
 		if (count % 60 == 0) {  // default refresh rate 
-			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
-			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
-			start_pos(1) += 1e-1;
+//			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
+//			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
+//			start_pos(1) += 1e-1;
 		}
 
 		// update graphics. this automatically waits for the correct amount of time

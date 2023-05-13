@@ -60,6 +60,9 @@ find_package(SAI2-URDF REQUIRED)
 include_directories(${SAI2-URDF_INCLUDE_DIRS})
 add_definitions(${SAI2-URDF_DEFINITIONS})
 
+# - SAI2-INTERFACES
+find_package(SAI2-INTERFACES REQUIRED)
+
 # - glfw3
 find_package(glfw3 QUIET)
 find_library(GLFW_LIBRARY glfw)
@@ -70,10 +73,12 @@ find_library(HIREDIS_LIBRARY hiredis)
 set(HOOPHERO_COMMON_LIBRARIES
         ${CHAI3D_LIBARIES}
         ${SAI2-COMMON_LIBRARIES}
+	${SAI2-PRIMITIVES_LIBRARIES}
         ${HIREDIS_LIBRARY}
         ${GLFW_LIBRARY}
         )
 
+# add apps
 set (HOOPHERO_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 
 add_subdirectory(project)
