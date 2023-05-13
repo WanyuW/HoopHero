@@ -26,8 +26,8 @@ CONTROLLER_PID=$!
 sleep 1
 
 # launch interfaces server
-#python3 interface/server.py HoopHero.html &
-#SERVER_PID=$!
+python3 interface/server.py HoopHero.html &
+SERVER_PID=$!
 
 # wait for simviz to quit
 wait $SIMVIZ_PID
