@@ -6,37 +6,41 @@ import time
 import tkinter
 import customtkinter
 
+# importing keys
+from keys import *
+
 # const
 # keys dict
 KEYS = {
     # redis_keys template
-    "JOINT_ANGLES_KEY": {"sai2::sim::panda::sensors::q": None},
-    "JOINT_VELOCITIES_KEY": {"sai2::sim::panda::sensors::dq": None},
-    "JOINT_TORQUES_COMMANDED_KEY": {"sai2::sim::panda::actuators::fgc": None},
-    "CONTROLLER_RUNNING_KEY": {"sai2::sim::panda::controller": None},
+    JOINT_ANGLES_KEY: "",
+    JOINT_VELOCITIES_KEY: "",
+    JOINT_TORQUES_COMMANDED_KEY: "",
+    CONTROLLER_RUNNING_KEY: "",
 
     # hoop's info
-    "HOOP_EE_POS": {"sai2::hoop::ee_pos": None},
-    "HOOP_EE_VEL": {"sai2::hoop::ee_vel": None},
+    HOOP_EE_POS: "",
+    HOOP_EE_VEL: "",
 
     # shooter's info
-    "SHOOTER_POWER": {"sai2::shooter::power": None}
+    SHOOTER_POWER: ""
 }
 
 def button_function():
-    print("button pressed")
+    print(KEYS[JOINT_ANGLES_KEY])
 
 def check_redis_keys(keys, r, app):
     # Retrieve the updated Redis keys using appropriate Redis commands
-    for key, name in keys:
-        for r_key, value in name:
-            value = r.get(r_key)
+    for key, value in keys.items():
+        value = r.get(key)
+        if value is not None:
+            keys[key] = value.decode()
 
     # Process the retrieved keys and update your application state
-    # ...
+    #
 
     # Schedule the next Redis key retrieval after a certain interval
-    app.after(1000, check_redis_keys)  # Adjust the interval as needed
+    app.after(10, check_redis_keys, keys, r, app)  # Adjust the interval as needed
 
 def main():
     r = redis.Redis()
@@ -56,9 +60,10 @@ def main():
 
     # Start the Redis key retrieval loop
     check_redis_keys(KEYS, r, app)
-    button_title = str(KEYS["JOINT_ANGLES_KEY"]["sai2::sim::panda::sensors::q"])
+    # passes = {}   # passed values
 
     # Use CTkButton instead of tkinter Button
+    button_title = "JOINT_ANGLES_KEY"
     button = customtkinter.CTkButton(master=app, text=button_title, command=button_function)
     button.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
 
