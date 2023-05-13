@@ -14,7 +14,7 @@ TARGET_LINK_LIBRARIES (controller ${HOOPHERO_COMMON_LIBRARIES} ${SAI2-PRIMITIVES
 
 # copy interface to output as well as any additional images
 FILE(COPY HoopHero.html DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-# FILE(COPY kuka_iiwa.jpg DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+FILE(COPY basketball_court.jpeg DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 # export resources such as model files.
 # NOTE: this requires an install build
@@ -28,5 +28,8 @@ FILE(COPY ${SAI2-INTERFACES_UI_DIR} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY
 
 # copy launch script
 FILE(COPY launch.sh DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+# copy interface.py
+FILE(COPY interface.py DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 
