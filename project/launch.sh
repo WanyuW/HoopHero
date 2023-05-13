@@ -7,6 +7,9 @@ fi
 ./simviz &
 SIMVIZ_PID=$!
 
+# try run py file
+python3 interface.py
+
 # trap ctrl-c and call ctrl_c()
 trap ctrl_c INT
 
@@ -25,9 +28,6 @@ sleep 1
 # launch interfaces server
 #python3 interface/server.py HoopHero.html &
 #SERVER_PID=$!
-
-# try run py file
-python3 interface.py
 
 # wait for simviz to quit
 wait $SIMVIZ_PID

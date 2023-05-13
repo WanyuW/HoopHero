@@ -26,6 +26,10 @@ void sighandler(int){runloop = false;}
 // Location of URDF files specifying world and robot information
 const string robot_file = "./resources/mmp_panda.urdf";
 
+unsigned long long controller_counter = 0;
+
+const bool inertia_regularization = true;
+
 enum State 
 {
 	POSTURE = 0, 
