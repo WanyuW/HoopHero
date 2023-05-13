@@ -20,12 +20,34 @@
 
     <!-- global execution scripts -->
     <script type="module" src="./js/index.js"></script>
+    
+    <!-- added java script to update the power key -->
+    <script type="text/javascript">
+      $(document).ready(function() {
+        // Subscribe to the Redis key and update the progress bar
+        var socket = io();
+        socket.on('redis-update', function(data) {
+          if (data.key === 'sai2::shooter::power') {
+            var progressValue = parseFloat(data.value);
+            updateProgressBar(progressValue);
+          }
+        });
+
+        // Function to update the width of the progress bar
+        function updateProgressBar(value) {
+          $('.power').css('width', value + '%');
+        }
+      });
+    </script>
 
     <!-- TODO: Layout CSS -->
     <style>
-        body {
-            background: no-repeat url("../img/basketball court.jpeg");
-        }
+      body {
+        background-image: url("./basketball_court.jpeg");
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-size: cover;
+      }
         
       .title {
         text-align: center;
@@ -36,7 +58,6 @@
       }
 
       .container {
-          background: no-repeat url("../img/basketball court.jpeg");
         display: grid;
         justify-content: center;
         grid-template-columns: 0.75fr;
@@ -65,6 +86,7 @@
   
   <body>
     <!-- TODO: Your interface goes here -->
+<!--    <img src="./basketball_court.jpeg" />-->
     <div class="title">
       <h1>HoopHero</h1>
     </div>
@@ -97,6 +119,7 @@
           refreshRate="1" decimalPlaces="2">
         </sai2-interfaces-display>
       </div>
+
     </div>
   </body>
 </html>
