@@ -10,3 +10,7 @@ HOOP_EE_VEL = "sai2::hoop::ee_vel"
 
 # shooter's info
 SHOOTER_POWER = "sai2::shooter::power"
+
+# ball's info
+BALL_POS = "sai2::sim::basketball_pos"
+BALL_VEL = "sai2::sim::basketball_vel"

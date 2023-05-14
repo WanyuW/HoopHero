@@ -13,3 +13,5 @@ const std::string CONTROLLER_RUNNING_KEY = "sai2::sim::panda::controller";
 const std::string HOOP_EE_POS = "sai2::hoop::ee_pos";
 const std::string HOOP_EE_VEL = "sai2::hoop::ee_vel";
 const std::string SHOOTER_POWER = "sai2::shooter::power";
+const std::string BALL_POS = "sai2::sim::basketball_pos";
+const std::string BALL_VEL = "sai2::sim::basketball_vel";

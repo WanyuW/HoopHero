@@ -23,7 +23,11 @@ KEYS = {
     HOOP_EE_VEL: "",
 
     # shooter's info
-    SHOOTER_POWER: ""
+    SHOOTER_POWER: "",
+
+    # ball's info
+    BALL_POS: "",
+    BALL_VEL: ""
 }
 
 # global variable
@@ -31,12 +35,12 @@ KEYS = {
 button = None
 
 def button_function():
-    print(KEYS[JOINT_ANGLES_KEY])
+    print(KEYS[BALL_POS])
     # Access the button object using the global keyword
     global button
 
     # Modify the button's attributes
-    button.configure(text=KEYS[JOINT_ANGLES_KEY])
+    button.configure(text=KEYS[HOOP_EE_POS])
     button.update()
 
 def check_redis_keys(keys, r, app):
@@ -70,7 +74,8 @@ def main():
     # ctk.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
 
     app = ctk.CTk()  # create CTk window like you do with the Tk window
-    app.geometry("400x240")
+    app.geometry("1440x900")
+    app.title("HoopHero")
 
     # Start the Redis key retrieval loop
     check_redis_keys(KEYS, r, app)
