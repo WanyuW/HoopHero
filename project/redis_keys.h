@@ -15,14 +15,11 @@ const std::string HOOP_EE_VEL = "sai2::hoop::ee_vel";
 const std::string SHOOTER_POWER = "sai2::shooter::power";
 const std::string BALL_POS = "sai2::sim::basketball_pos";
 const std::string BALL_VEL = "sai2::sim::basketball_vel";
-<<<<<<< HEAD
 const std::string SHOOTER_EE_POS = "sai2::shooter::ee_pos";
 const std::string SHOOTER_EE_VEL = "sai2::shooter::ee_vel";
 const std::string JOINT_ANGLES_KEY_SHOOTER = "sai2::sim::kuka::sensors::q";
 const std::string JOINT_VELOCITIES_KEY_SHOOTER = "sai2::sim::kuka::sensors::dq";
 const std::string JOINT_TORQUES_COMMANDED_KEY_SHOOTER = "sai2::sim::kuka::actuators::fgc";
-=======
 const std::string HOOP_STATE_KEY = "sai2::sim::hoop::state";
 const std::string SHOOTER_MODE = "sai2::sim::shooter::mode";
 
->>>>>>> 374befb6e6fed3bfdd07b9c4ce85382a8c8a7f2a
