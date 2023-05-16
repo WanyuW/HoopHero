@@ -1,6 +1,7 @@
 {
   "CTk": {
-    "fg_color": ["gray95", "gray10"]
+    "fg_color": ["gray95", "gray10"],
+    "bg_color": "transparent"
   },
   "CTkToplevel": {
     "fg_color": ["gray95", "gray10"]

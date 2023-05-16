@@ -15,3 +15,6 @@ const std::string HOOP_EE_VEL = "sai2::hoop::ee_vel";
 const std::string SHOOTER_POWER = "sai2::shooter::power";
 const std::string BALL_POS = "sai2::sim::basketball_pos";
 const std::string BALL_VEL = "sai2::sim::basketball_vel";
+const std::string HOOP_STATE_KEY = "sai2::sim::hoop::state";
+const std::string SHOOTER_MODE = "sai2::sim::shooter::mode";
+

@@ -151,9 +151,6 @@ int main() {
 				posori_task->reInitializeTask();
 				robot->position(ee_pos, control_link, control_point);
 
-				// send ee_pos to HOOP_EE_POS
-        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-
 				posori_task->_desired_position = ee_pos - Vector3d(-0.1, -0.1, 0.1);
 				posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				// posori_task->_desired_orientation = AngleAxisd(0.0000000000000001, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
@@ -166,7 +163,7 @@ int main() {
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
 			q_curr_desired = robot -> _q;
-			q_curr_desired(0) = 1;  //move the base of the robot to x = 0.5
+			q_curr_desired(0) = 1;  //move the base of the robot to x = 1
 			q_curr_desired(1) = .5;	//move the base of the robot to y = 0.5
 			joint_task -> _desired_position = q_curr_desired;
 			// compute torques
@@ -178,7 +175,6 @@ int main() {
 				joint_task->reInitializeTask();
 				posori_task->reInitializeTask();
 				robot->position(ee_pos, control_link, control_point);
-        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
 				joint_task -> _use_velocity_saturation_flag = true;
 				joint_task -> _saturation_velocity(0) = 0.0;
 				joint_task -> _saturation_velocity(1) = 0.0;
@@ -200,7 +196,6 @@ int main() {
 				joint_task -> _saturation_velocity(0) = 0.0;
 				joint_task -> _saturation_velocity(1) = 0.0;
 
-
 				posori_task->_desired_orientation = AngleAxisd(M_PI/3, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task -> _desired_position = q_curr_desired;
 				// compute torques
@@ -213,10 +208,6 @@ int main() {
 					joint_task->reInitializeTask();
 					posori_task->reInitializeTask();
 					robot->position(ee_pos, control_link, control_point);
-
-					// send ee_pos to HOOP_EE_POS
-	        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-
 					posori_task->_desired_position = ee_pos - Vector3d(-0.1, -0.1, 0.1);
 					posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 					// posori_task->_desired_orientation = AngleAxisd(0.0000000000000001, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
