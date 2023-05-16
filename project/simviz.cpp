@@ -28,6 +28,8 @@ using namespace Eigen;
 const string world_file = "./resources/world.urdf";
 const string robot_file = "./resources/mmp_panda.urdf";
 const string robot_name = "mmp_panda";
+const string robot2_file = "./resources/kuka_iiwa.urdf";
+const string robot2_name = "kuka_iiwa";    //urdf for the kuka_iiwa
 const string camera_name = "camera_fixed";
 const string base_link_name = "link0";
 const string ee_link_name = "link7";
@@ -44,7 +46,7 @@ const int n_objects = object_names.size();
 RedisClient redis_client; 
 
 // simulation thread
-void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim);
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim);
 
 // callback to print glfw errors
 void glfwError(int error, const char* description);
@@ -93,11 +95,17 @@ int main() {
 	// robot->_q = VectorXd::Zero(7);
 	// robot->_dq = VectorXd::Zero(7);
 	robot->updateModel();
+    robot->updateKinematics();
+    
+    // load second robot
+    auto robot2 = new Sai2Model::Sai2Model(robot2_file, false);
+    robot2->updateModel();
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
+
 
 	// fill in object information 
 	for (int i = 0; i < n_objects; ++i) {
@@ -155,10 +163,12 @@ int main() {
 	// init redis client values 
 	redis_client.set(CONTROLLER_RUNNING_KEY, "0");  
 	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q); 
-	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq); 
+	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
+    redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
+    redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
 
 	// start simulation thread
-	thread sim_thread(simulation, robot, sim);
+	thread sim_thread(simulation, robot, robot2, sim);
 
 	// initialize glew
 	glewInitialize();
@@ -183,7 +193,8 @@ int main() {
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
-		graphics->updateGraphics(robot_name, robot); 
+		graphics->updateGraphics(robot_name, robot);
+        graphics->updateGraphics(robot2_name, robot2);
 		for (int i = 0; i < n_objects; ++i) {
 			graphics->updateObjectGraphics(object_names[i], object_pos[i], object_ori[i]);
 		}
@@ -277,13 +288,17 @@ int main() {
 
 //------------------------------------------------------------------------------
 
-void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim)
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim)
 {
 	// prepare simulation
 	int dof = robot->dof();
+    int dof2 = robot2->dof();
 	VectorXd command_torques = VectorXd::Zero(dof);
+    VectorXd command_torques2 = VectorXd::Zero(dof2);
 	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
+    redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY_SHOOTER, command_torques2); //added for the second robot
 	VectorXd g = VectorXd::Zero(dof);
+    VectorXd g2 = VectorXd::Zero(dof2);
 	string controller_status = "0";
 	double kv = 10;  // can be set to 0 if no damping is needed
 
@@ -294,16 +309,20 @@ void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim)
 	// add to read callback
 	redis_client.addStringToReadCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
 	redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
+    redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY_SHOOTER, command_torques2);
+
 
 	// add to write callback
 	redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY, robot->_q);
 	redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
+    redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
+    redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
 	redis_client.addEigenToWriteCallback(0, BALL_POS, object_pos[0]);
 
 	// create a timer
 	LoopTimer timer;
 	timer.initializeTimer();
-	timer.setLoopFrequency(1000); 
+	timer.setLoopFrequency(1000);
 	bool fTimerDidSleep = true;
 	double start_time = timer.elapsedTime();
 	double last_time = start_time;
@@ -318,23 +337,33 @@ void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim)
 
 		// apply gravity compensation 
 		robot->gravityVector(g);
+        // apply gravity compensation for the second robot
+        robot2->gravityVector(g2);
 
 		// set joint torques
 		if (controller_status == "1") {
 			sim->setJointTorques(robot_name, command_torques + g);
+            sim->setJointTorques(robot2_name, command_torques2 + g2);
 		} else {
 			sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
+            sim->setJointTorques(robot2_name, g2 - robot2->_M * (kv * robot2->_dq));
 		}
+
 
 		// integrate forward
 		double curr_time = timer.elapsedTime();
 		double loop_dt = curr_time - last_time; 
 		sim->integrate(loop_dt);
-
+    
 		// read joint positions, velocities, update model
 		sim->getJointPositions(robot_name, robot->_q);
 		sim->getJointVelocities(robot_name, robot->_dq);
 		robot->updateModel();
+        
+        // read joint positions, velocities, and update model for the second robot
+        sim->getJointPositions(robot2_name, robot2->_q);
+        sim->getJointVelocities(robot2_name, robot2->_dq);
+        robot2->updateModel();
 
 		// get dynamic object positions
 		for (int i = 0; i < n_objects; ++i) {

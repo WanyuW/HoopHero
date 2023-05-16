@@ -3,7 +3,12 @@ if [ ! "$BASH_VERSION" ] ; then
     exec /bin/bash "$0" "$@"
 fi
 
-# launch simulation first
+
+# try run py file
+python3 interface.py &
+SERVER_PID=$! #run interface first
+
+# launch simulation then
 ./simviz &
 SIMVIZ_PID=$!
 
@@ -16,9 +21,6 @@ function ctrl_c() {
 
 sleep 2
 
-# try run py file
-python3 interface.py &
-SERVER_PID=$!
 
 # launch controller
 ./controller &
