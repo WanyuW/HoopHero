@@ -32,17 +32,14 @@ const bool inertia_regularization = true;
 
 enum State
 {
-	POSTURE = 0,
-	HOOP_MOVE_BASE = 1,
-	HOOP_MOVE_EE = 2,
-	IDLE = 	3,
-	INITIALIZE =  4
+	INITIALIZE = 0,
+	HOOP_MOVE = 1,
 };
 
 int main() {
 
 	// initial state
-	int state = POSTURE;
+	int state = INITIALIZE;
 	string controller_status = "1";
 
 	// start redis client
@@ -58,6 +55,7 @@ int main() {
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
 	robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
 	robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
+	VectorXd initial_q = robot->_q;
 	robot->updateModel();
 
 	// prepare controller
@@ -69,8 +67,10 @@ int main() {
 	const string control_link = "link7";
 	const Vector3d control_point = Vector3d(0, 0, 0.07);
 	auto posori_task = new Sai2Primitives::PosOriTask(robot, control_link, control_point);
+
 	posori_task->_use_interpolation_flag = true;
 	posori_task->_use_velocity_saturation_flag = true;
+	posori_task->_otg->setMaxLinearVelocity(0.8);
 
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
 	posori_task->_kp_pos = 400.0;
@@ -78,26 +78,43 @@ int main() {
 	posori_task->_kp_ori = 400.0;
 	posori_task->_kv_ori = 40.0;
 
-	// joint task
-	auto joint_task = new Sai2Primitives::JointTask(robot);
-	joint_task->_use_interpolation_flag = true;
-	joint_task->_use_velocity_saturation_flag = true;
+	// set the current EE posiiton as the desired EE position
+	Vector3d x_desired = Vector3d::Zero(3);
+	Vector3d ee_pos = Vector3d::Zero(3);
+	robot->position(x_desired, control_link, control_point);
+	Vector3d x_init_desired = x_desired;
+	Vector3d x_curr_desired = x_init_desired;
 
-	VectorXd joint_task_torques = VectorXd::Zero(dof);
-	joint_task->_kp = 400.0;
-	joint_task->_kv = 40.0;
+	// partial joint task to control the mobile base
+	vector<int> base_joint_selection{0, 1, 2};
+	auto base_task = new Sai2Primitives::PartialJointTask(robot, base_joint_selection);
+	base_task->_use_interpolation_flag = false;  // turn off if trajectory following; else turn on
+	base_task->_use_velocity_saturation_flag = true;
+	base_task->_saturation_velocity << 0.2, 0.2, 0.3;  // adjust based on speed
 
-	VectorXd q_init_desired(dof);
-	q_init_desired <<  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;  ////!!!!!!!
+	VectorXd base_task_torques = VectorXd::Zero(dof);
+	base_task->_kp = 200;
+	base_task->_kv = 20;
+
+	VectorXd base_pose_desired = initial_q.head(3);
+	VectorXd base_pose_init_desired = base_pose_desired;
+	VectorXd base_pose_curr_desired = base_pose_init_desired;
+
+	// joint (posture) task
+	vector<int> arm_joint_selection{3, 4, 5, 6, 7, 8, 9};
+	auto arm_joint_task = new Sai2Primitives::PartialJointTask(robot, arm_joint_selection);
+	arm_joint_task->_use_interpolation_flag = false;
+
+	VectorXd arm_joint_task_torques = VectorXd::Zero(dof);
+	arm_joint_task->_kp = 100;
+	arm_joint_task->_kv = 20;
+
+	// set the desired posture
+	VectorXd q_init_desired = initial_q.tail(7);
+	VectorXd q_curr_desired = q_init_desired;
+	q_init_desired <<  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 	q_init_desired *= M_PI/180.0;
-	q_init_desired(0) = -.5;
-	q_init_desired(1) = -.5;
-
-	joint_task->_desired_position = q_init_desired;
-
-	// containers
-	Vector3d ee_pos;
-	Matrix3d ee_rot;
+	arm_joint_task->_desired_position = q_init_desired;
 
 	// setup redis callback
 	redis_client.createReadCallback(0);
@@ -122,6 +139,11 @@ int main() {
 
 	runloop = true;
 
+
+	base_pose_init_desired(0)=0.5;
+	base_pose_init_desired(1)=0.5;
+	x_init_desired(0) += base_pose_init_desired(0); //ee_x
+	x_init_desired(1) += base_pose_init_desired(1);//e_y
 	while (runloop) {
 		// wait for next scheduled loop
 		timer.waitForNextLoop();
@@ -136,104 +158,96 @@ int main() {
 		// update model
 		robot->updateModel();
 
-		if (state == POSTURE) {
+		if (state == INITIALIZE) {
+			// set controller inputs
+			x_init_desired(0) = 2;
+			x_init_desired(1) = 2;
+			x_init_desired(2) = x_desired(2) - .5;
+
+			posori_task->_desired_position = x_init_desired;
+			base_task->_desired_position = base_pose_init_desired;
+			arm_joint_task->_desired_position = q_init_desired;
+
 			// update task model and set hierarchy
+			/*
+				arm-driven motion hieararchy: arm -> base -> arm nullspace
+			*/
 			N_prec.setIdentity();
-			joint_task->updateTaskModel(N_prec);
+			posori_task->updateTaskModel(N_prec);
+			N_prec = posori_task->_N;
+			base_task->updateTaskModel(N_prec);
+			N_prec = base_task->_N;
+			arm_joint_task->updateTaskModel(N_prec);
+
+			// /*
+			// 	base-driven motion hieararchy: base -> arm -> arm nullspace
+			// */
+			// N_prec.setIdentity();
+			// base_task->updateTaskModel(N_prec);
+			// N_prec = base_task->_N;
+		  // posori_task->updateTaskModel(N_prec);
+		  // N_prec = posori_task->_N;
+		  // arm_joint_task->updateTaskModel(N_prec);
 
 			// compute torques
-			joint_task->computeTorques(joint_task_torques);
-			command_torques = joint_task_torques;
+			base_task->computeTorques(base_task_torques);
+			arm_joint_task->computeTorques(arm_joint_task_torques);
+			posori_task->computeTorques(posori_task_torques);
 
-			if ( (robot->_q - q_init_desired).norm() < 0.15 && time > 3 ) {
-				cout << "Posture To Motion" << endl;
-				joint_task->reInitializeTask();
-				posori_task->reInitializeTask();
-				robot->position(ee_pos, control_link, control_point);
-
-				// send ee_pos to HOOP_EE_POS
-        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-
-				posori_task->_desired_position = ee_pos - Vector3d(-0.1, -0.1, 0.1);
-				posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-				// posori_task->_desired_orientation = AngleAxisd(0.0000000000000001, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-
-				state = HOOP_MOVE_BASE;
-
-			}
-		} else if (state == HOOP_MOVE_BASE) {
-			// update task model and set hierarchy
-			N_prec.setIdentity();
-			joint_task->updateTaskModel(N_prec);
-			q_curr_desired = robot -> _q;
-			q_curr_desired(0) = 1;  //move the base of the robot to x = 0.5
-			q_curr_desired(1) = .5;	//move the base of the robot to y = 0.5
-			joint_task -> _desired_position = q_curr_desired;
-			// compute torques
-			joint_task->computeTorques(joint_task_torques);
-			command_torques = joint_task_torques;
-
-			if ( (robot->_q - q_curr_desired).norm() < 0.05 ) {
-				cout << "HOOP_BASE_ARRIVED" << endl;
-				joint_task->reInitializeTask();
+			command_torques = base_task_torques + arm_joint_task_torques + posori_task_torques;
+			robot->position(ee_pos, control_link, control_point);
+			if ( (ee_pos - x_init_desired).norm() < 0.5 && time > 3 ) {
+				cout << "Robot Initialized" << endl;
+				base_task->reInitializeTask();
+				arm_joint_task->reInitializeTask();
 				posori_task->reInitializeTask();
 				robot->position(ee_pos, control_link, control_point);
         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-				joint_task -> _use_velocity_saturation_flag = true;
-				joint_task -> _saturation_velocity(0) = 0.0;
-				joint_task -> _saturation_velocity(1) = 0.0;
-				command_torques = 0 * joint_task_torques;
-				//posori_task->_desired_position = ee_pos - Vector3d(-0.1, -0.1, 0.1);
-				//posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-				//posori_task->_desired_orientation = AngleAxisd(0.0000000000000001, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-				state = HOOP_MOVE_EE;
+
+				// command_torques = 0 * (base_task_torques + arm_joint_task_torques + posori_task_torques);
+				state = HOOP_MOVE;
+
 			}
 		}
-		else if (state == HOOP_MOVE_EE) {
-				// update task model and set hierarchy
-				N_prec.setIdentity();
-				posori_task->updateTaskModel(N_prec);
-				N_prec = posori_task->_N;
-				joint_task->updateTaskModel(N_prec);
+		else if (state == HOOP_MOVE) {
 
-				joint_task -> _use_velocity_saturation_flag = true;
-				joint_task -> _saturation_velocity(0) = 0.0;
-				joint_task -> _saturation_velocity(1) = 0.0;
+			x_curr_desired(0) = -0.3;
+			x_curr_desired(1) = 0.5;
 
+			posori_task->_desired_position = x_curr_desired;
+			base_task->_desired_position = base_pose_init_desired;
+			arm_joint_task->_desired_position = q_init_desired;
 
-				posori_task->_desired_orientation = AngleAxisd(M_PI/3, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-				joint_task -> _desired_position = q_curr_desired;
-				// compute torques
-				posori_task->computeTorques(posori_task_torques);
-				joint_task->computeTorques(joint_task_torques);
-				command_torques = posori_task_torques + joint_task_torques;
-
-				if ( (robot->_q - q_curr_desired).norm() < 0.15 ) {
-					cout << "HOOP_EE_ARRIVED" << endl;
-					joint_task->reInitializeTask();
-					posori_task->reInitializeTask();
-					robot->position(ee_pos, control_link, control_point);
-
-					// send ee_pos to HOOP_EE_POS
-	        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-
-					posori_task->_desired_position = ee_pos - Vector3d(-0.1, -0.1, 0.1);
-					posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-					// posori_task->_desired_orientation = AngleAxisd(0.0000000000000001, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-
-					state = IDLE;
-				}
-		} else if (state == IDLE) {
 			// update task model and set hierarchy
+			/*
+				arm-driven motion hieararchy: arm -> base -> arm nullspace
+			*/
 			N_prec.setIdentity();
-			joint_task->updateTaskModel(N_prec);
-			// joint_task -> _use_velocity_saturation_flag = true;
-			// joint_task -> _saturation_velocity(0) = 0.0;
-			// joint_task -> _saturation_velocity(1) = 0.0;
+			posori_task->updateTaskModel(N_prec);
+			N_prec = posori_task->_N;
+			base_task->updateTaskModel(N_prec);
+			N_prec = base_task->_N;
+			arm_joint_task->updateTaskModel(N_prec);
 
 			// compute torques
-			joint_task->computeTorques(joint_task_torques);
-			command_torques =  joint_task_torques;
+			posori_task->computeTorques(posori_task_torques);
+			base_task->computeTorques(base_task_torques);
+			arm_joint_task->computeTorques(arm_joint_task_torques);
+
+			command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
+			robot->position(ee_pos, control_link, control_point);
+
+			if ( (ee_pos - x_curr_desired).norm() < 0.15 && time > 3 ) {
+				cout << "Robot Reached" << endl;
+				base_task->reInitializeTask();
+				arm_joint_task->reInitializeTask();
+				posori_task->reInitializeTask();
+				robot->position(ee_pos, control_link, control_point);
+        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
+
+				// command_torques = 0 * (base_task_torques + arm_joint_task_torques + posori_task_torques);
+				state = INITIALIZE;
+			}
 		}
 
 		// execute redis write callback
@@ -248,7 +262,7 @@ int main() {
     std::cout << "Controller Loop updates   : " << timer.elapsedCycles() << "\n";
     std::cout << "Controller Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
 
-	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, 0 * command_torques);  // back to floating
+		redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, 0 * command_torques);  // back to floating
 
 	return 0;
 }
