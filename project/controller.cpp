@@ -25,6 +25,7 @@ void sighandler(int){runloop = false;}
 
 // Location of URDF files specifying world and robot information
 const string robot_file = "./resources/mmp_panda.urdf";
+const string robot2_file = "./resources/kuka_iiwa.urdf";
 
 unsigned long long controller_counter = 0;
 
@@ -58,10 +59,18 @@ int main() {
 	VectorXd initial_q = robot->_q;
 	robot->updateModel();
 
+	auto robot2 = new Sai2Model::Sai2Model(robot2_file, false);
+	robot2->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY_SHOOTER);
+	robot2->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY_SHOOTER);
+	robot2->updateModel();
+
 	// prepare controller
 	int dof = robot->dof();
+	int dof2 = robot2->dof();
 	VectorXd command_torques = VectorXd::Zero(dof);
+	VectorXd command_torques2 = VectorXd::Zero(dof2);
 	MatrixXd N_prec = MatrixXd::Identity(dof, dof);
+	MatrixXd N_prec2 = MatrixXd::Identity(dof2, dof2); // for the second robot
 
 	// pose task
 	const string control_link = "link7";
@@ -78,9 +87,23 @@ int main() {
 	posori_task->_kp_ori = 400.0;
 	posori_task->_kv_ori = 40.0;
 
+	//second robot
+	const string control_link2 = "link6";
+	const Vector3d control_point2 = Vector3d(0, 0, 0.07);
+	auto posori_task2 = new Sai2Primitives::PosOriTask(robot2, control_link2, control_point2);
+	posori_task2->_use_interpolation_flag = true;
+	posori_task2->_use_velocity_saturation_flag = true;
+
+	VectorXd posori_task_torques2 = VectorXd::Zero(dof2);
+	posori_task2->_kp_pos = 400.0;
+	posori_task2->_kv_pos = 40.0;
+	posori_task2->_kp_ori = 400.0;
+	posori_task2->_kv_ori = 40.0;
+
 	// set the current EE posiiton as the desired EE position
 	Vector3d x_desired = Vector3d::Zero(3);
 	Vector3d ee_pos = Vector3d::Zero(3);
+
 	robot->position(x_desired, control_link, control_point);
 	Vector3d x_init_desired = x_desired;
 	Vector3d x_curr_desired = x_init_desired;
@@ -116,6 +139,30 @@ int main() {
 	q_init_desired *= M_PI/180.0;
 	arm_joint_task->_desired_position = q_init_desired;
 
+	//second robot
+	auto joint_task2 = new Sai2Primitives::JointTask(robot2);
+	joint_task2->_use_interpolation_flag = true;
+	joint_task2->_use_velocity_saturation_flag = true;
+
+	VectorXd joint_task_torques2 = VectorXd::Zero(dof2);
+	joint_task2->_kp = 400.0;
+	joint_task2->_kv = 40.0;
+
+	VectorXd q_init_desired2(dof2);
+	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+//    q_init_desired2 <<  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+	q_init_desired2 *= M_PI/180.0;
+
+	joint_task2->_desired_position = q_init_desired2;
+
+
+
+	// containers
+	Matrix3d ee_rot;
+
+	Vector3d ee_pos_shooter;
+	Matrix3d ee_rot_shooter;
+
 	// setup redis callback
 	redis_client.createReadCallback(0);
 	redis_client.createWriteCallback(0);
@@ -123,10 +170,15 @@ int main() {
 	// add to read callback
 	redis_client.addEigenToReadCallback(0, JOINT_ANGLES_KEY, robot->_q);
 	redis_client.addEigenToReadCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.addEigenToReadCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
+	redis_client.addEigenToReadCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
 
 	// add to write callback
 	redis_client.addStringToWriteCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
 	redis_client.addEigenToWriteCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
+	redis_client.addEigenToWriteCallback(0, JOINT_TORQUES_COMMANDED_KEY_SHOOTER, command_torques2);
+	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS, ee_pos_shooter);
+	redis_client.addEigenToWriteCallback(0, HOOP_EE_POS, ee_pos);
 
 	// create a timer
 	LoopTimer timer;
@@ -157,11 +209,23 @@ int main() {
 
 		// update model
 		robot->updateModel();
+		robot2->updateModel();
+
+		//for shooter
+		N_prec2.setIdentity();
+		joint_task2->updateTaskModel(N_prec2);
+
+		// compute torques
+		joint_task2->computeTorques(joint_task_torques2);
+		command_torques2 = joint_task_torques2;
+
+		//compute position
+		robot2->position(ee_pos_shooter, control_link2, control_point2);
 
 		if (state == INITIALIZE) {
 			// set controller inputs
-			x_init_desired(0) = 2;
-			x_init_desired(1) = 2;
+			x_init_desired(0) = 0.1;
+			x_init_desired(1) = 0.1;
 			x_init_desired(2) = x_desired(2) - .5;
 
 			posori_task->_desired_position = x_init_desired;
@@ -211,8 +275,8 @@ int main() {
 		}
 		else if (state == HOOP_MOVE) {
 
-			x_curr_desired(0) = -0.3;
-			x_curr_desired(1) = 0.5;
+			x_curr_desired(0) = -1;
+			x_curr_desired(1) = -1;
 
 			posori_task->_desired_position = x_curr_desired;
 			base_task->_desired_position = base_pose_init_desired;
