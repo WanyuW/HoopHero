@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 using namespace std;
 using namespace Eigen;
@@ -37,10 +38,18 @@ enum State
 	HOOP_MOVE = 1,
 };
 
+enum Mode
+{
+    Mode1 = 0,
+    Mode2 = 1,
+    Mode3 = 2,
+};
+
 int main() {
 
 	// initial state
 	int state = INITIALIZE;
+	int Mode = 0;
 	string controller_status = "1";
 
 	// start redis client
@@ -148,11 +157,21 @@ int main() {
 	joint_task2->_kp = 400.0;
 	joint_task2->_kv = 40.0;
 
-	VectorXd q_init_desired2(dof2);
-	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 10.0, 0.0;
-//    q_init_desired2 <<  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-	q_init_desired2 *= M_PI/180.0;
 
+	VectorXd q_init_desired2(dof2);
+	if (Mode == Mode1) {
+	q_init_desired2 <<  0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+	}
+
+	else if (Mode == Mode2) {
+	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+	}
+
+	else if (Mode == Mode2) {
+	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+	} // three shooting modes.
+
+	q_init_desired2 *= M_PI/180.0;
 	joint_task2->_desired_position = q_init_desired2;
 
 
@@ -192,8 +211,8 @@ int main() {
 	runloop = true;
 
 
-	base_pose_init_desired(0)=0.5;
-	base_pose_init_desired(1)=0.5;
+	base_pose_init_desired(0)=0;
+	base_pose_init_desired(1)=0;
 	x_init_desired(0) += base_pose_init_desired(0); //ee_x
 	x_init_desired(1) += base_pose_init_desired(1);//e_y
 	while (runloop) {
@@ -224,9 +243,9 @@ int main() {
 
 		if (state == INITIALIZE) {
 			// set controller inputs
-			x_init_desired(0) = 0.1;
-			x_init_desired(1) = 0.1;
-			x_init_desired(2) = x_desired(2) - .5;
+			x_init_desired(0) = 0;
+			x_init_desired(1) = 0;
+			x_init_desired(2) = x_desired(2); //back to initial position and posture
 
 			posori_task->_desired_position = x_init_desired;
 			base_task->_desired_position = base_pose_init_desired;
@@ -260,7 +279,7 @@ int main() {
 
 			command_torques = base_task_torques + arm_joint_task_torques + posori_task_torques;
 			robot->position(ee_pos, control_link, control_point);
-			if ( (ee_pos - x_init_desired).norm() < 0.5 && time > 3 ) {
+			if ( (ee_pos - x_init_desired).norm() < 0.015 && time > 3 ) {
 				cout << "Robot Initialized" << endl;
 				base_task->reInitializeTask();
 				arm_joint_task->reInitializeTask();
@@ -269,14 +288,26 @@ int main() {
         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
 
 				// command_torques = 0 * (base_task_torques + arm_joint_task_torques + posori_task_torques);
+
+
+				N_prec2.setIdentity();
+		joint_task2->updateTaskModel(N_prec2);
+
+		// compute torques
+		joint_task2->computeTorques(joint_task_torques2);
+		command_torques2 = joint_task_torques2;
+
+		//compute position
+		robot2->position(ee_pos_shooter, control_link2, control_point2);
 				state = HOOP_MOVE;
 
 			}
 		}
 		else if (state == HOOP_MOVE) {
 
-			x_curr_desired(0) = -1;
-			x_curr_desired(1) = -1;
+			x_curr_desired(0) = 2;
+			x_curr_desired(1) = -2;
+			x_curr_desired(2) = 0.85;
 
 			posori_task->_desired_position = x_curr_desired;
 			base_task->_desired_position = base_pose_init_desired;
@@ -301,7 +332,7 @@ int main() {
 			command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
 			robot->position(ee_pos, control_link, control_point);
 
-			if ( (ee_pos - x_curr_desired).norm() < 0.15 && time > 3 ) {
+			if ( (ee_pos - x_curr_desired).norm() < 0.015 && time > 3 ) {
 				cout << "Robot Reached" << endl;
 				base_task->reInitializeTask();
 				arm_joint_task->reInitializeTask();
