@@ -146,24 +146,23 @@
                 <mesh filename="../../../model/iiwa7/meshes/link6.obj" scale="1 1 1" />
             </geometry>
         </visual>
-        <visual>
-            <origin xyz="-0.1 0 0" rpy="0 1.57 3.1415926" />
-            <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/launcher.obj" scale="6 6 6" />
-            </geometry>
-        </visual>
-        <!-- <collision>
+        <collision>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
                 <mesh filename="../../../model/iiwa7/meshes/link6.obj" scale="1 1 1" />
             </geometry>
-        </collision> -->
-        
+        </collision>
+        <visual>
+            <origin xyz="0.23487 0 0.3" rpy="0 0 3.1415926" />
+            <geometry>
+                <mesh filename="../../../model/iiwa7/meshes/hand.obj" scale="0.32 0.32 0.32" />
+            </geometry>
+        </visual>
         
         <collision>
             <origin xyz="-0.1 0 0" rpy="0 1.57 3.1415926" />
             <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/launcher.obj" scale="6 6 6" />
+                <mesh filename="../../../model/iiwa7/meshes/launcher.obj" scale="10 10 10" />
             </geometry>
         </collision>
         
@@ -207,7 +206,7 @@
     <joint name="j5" type="revolute">
         <parent link="link4" />
         <child link="link5" />
-        <origin xyz="0.000000 0.000000 0.217003" rpy="0.000000 1.5000 0.000000" />
+        <origin xyz="0.000000 0.000000 0.217003" rpy="0.000000 0.00 0.000000" />
         <axis xyz="0 1 0" />
         <limit lower="-2.0944" upper="2.0944" effort="40" velocity="3.1416" />
     </joint>

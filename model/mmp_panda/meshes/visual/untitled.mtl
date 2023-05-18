@@ -1,0 +1,22 @@
+# Blender 3.5.1 MTL File: 'None'
+# www.blender.org
+
+newmtl Mat_0
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd 81e7b97c4ea4197579d88787b99e5de.jpg
+
+newmtl Mat_2
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd depositphotos_108261564-White-brick-wall-texture-Seamless-background.jpg
