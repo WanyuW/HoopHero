@@ -42,6 +42,12 @@ vector<Quaterniond> object_ori;
 vector<Vector3d> object_ang_vel;
 const int n_objects = object_names.size();
 
+// estimate future position for dynamic obj
+vector<Vector3d> object_future_pos;
+vector<Vector3d> object_future_lin_vel;
+vector<Quaterniond> object_future_ori;
+vector<Vector3d> object_future_ang_vel;
+
 // redis client 
 RedisClient redis_client; 
 
@@ -106,6 +112,11 @@ int main() {
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
 
+	// load estimation world
+//	auto sim_future = new Simulation::Sai2Simulation(world_file, false);
+//	sim_future->setJointPositions(robot_name, robot->_q);
+//	sim_future->setJointVelocities(robot_name, robot->_dq);
+
 
 	// fill in object information 
 	for (int i = 0; i < n_objects; ++i) {
@@ -117,14 +128,32 @@ int main() {
 		object_lin_vel.push_back(_object_lin_vel);
 		object_ori.push_back(_object_ori);
 		object_ang_vel.push_back(_object_ang_vel);
+
+//		// estimation of future pos
+//		// future objs
+//		Vector3d _object_future_pos, _object_future_lin_vel, _object_future_ang_vel;
+//		Quaterniond _object_future_ori;
+//		sim_future->getObjectPosition(object_names[i], _object_future_pos, _object_future_ori);
+//		sim_future->getObjectVelocity(object_names[i], _object_future_lin_vel, _object_future_ang_vel);
+//		object_future_pos.push_back(_object_future_pos);
+//		object_future_lin_vel.push_back(_object_future_lin_vel);
+//		object_future_ori.push_back(_object_future_ori);
+//		object_future_ang_vel.push_back(_object_future_ang_vel);
 	}
 
     // set co-efficient of restition to zero for force control
     sim->setCollisionRestitution(0.0);
 
+//    // future
+//    sim_future->setCollisionRestitution(0.0);
+
     // set co-efficient of friction
     sim->setCoeffFrictionStatic(0.0);
     sim->setCoeffFrictionDynamic(0.0);
+
+//    // set co-efficient of friction for future
+//    sim_future->setCoeffFrictionStatic(0.0);
+//    sim_future->setCoeffFrictionDynamic(0.0);
 
 	/*------- Set up visualization -------*/
 	// set up error callback
@@ -169,6 +198,9 @@ int main() {
 
 	// start simulation thread
 	thread sim_thread(simulation, robot, robot2, sim);
+
+//	// start future simulation
+//    thread sim_thread_future(simulation, robot, robot2, sim_future);
 
 	// initialize glew
 	glewInitialize();
