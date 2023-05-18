@@ -22,4 +22,7 @@ const std::string JOINT_VELOCITIES_KEY_SHOOTER = "sai2::sim::kuka::sensors::dq";
 const std::string JOINT_TORQUES_COMMANDED_KEY_SHOOTER = "sai2::sim::kuka::actuators::fgc";
 const std::string HOOP_STATE_KEY = "sai2::sim::hoop::state";
 const std::string SHOOTER_MODE = "sai2::sim::shooter::mode";
+const std::string FUTURE_POS = "sai2::sim::basketball_future_pos";
+const std::string GAME_STATE = "sai2::game_state";
+
 

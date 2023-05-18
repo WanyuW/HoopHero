@@ -16,3 +16,7 @@ SHOOTER_MODE = "sai2::sim::shooter::mode"
 # ball's info
 BALL_POS = "sai2::sim::basketball_pos"
 BALL_VEL = "sai2::sim::basketball_vel"
+FUTURE_POS = "sai2::sim::basketball_future_pos"
+
+# launch
+GAME_STATE = "sai2::game_state"

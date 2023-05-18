@@ -20,6 +20,7 @@ KEYS = {
     JOINT_VELOCITIES_KEY: "",
     JOINT_TORQUES_COMMANDED_KEY: "",
     CONTROLLER_RUNNING_KEY: "",
+    GAME_STATE: "",
 
     # hoop's info
     HOOP_EE_POS: "",
@@ -37,7 +38,7 @@ KEYS = {
 
 # global variable
 # Define the button as a global variable
-button = None
+app = None
 power = None
 r = redis.Redis()
 start_time = None
@@ -48,15 +49,24 @@ switch1 = None
 switch2 = None
 switch3 = None
 wind_scale = "0"
+start_frame = None
+main_frame = None
 
 
 def button_function():
-    global power
-    power_progress = random.random()
-    r.set(SHOOTER_POWER, power_progress)
-    power.set(float(KEYS[SHOOTER_POWER]))
-    power.update()
-    print(KEYS[SHOOTER_POWER], power_progress)
+    # global power
+    # power_progress = random.random()
+    # r.set(SHOOTER_POWER, power_progress)
+    # power.set(float(KEYS[SHOOTER_POWER]))
+    # power.update()
+    # print(KEYS[SHOOTER_POWER], power_progress)
+    global app
+    global start_frame
+    global main_frame
+    start_frame.place_forget()  # remove login frame
+    print("pressed")
+    main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
+    print(r.get(GAME_STATE))
 
 
 def check_redis_keys(keys, app):
@@ -139,19 +149,27 @@ def switch_event3():
     # print("switch toggled, current value:", mode_var.get(), r.get(SHOOTER_MODE).decode())
 
 
+def lauch_function():
+    r.set(GAME_STATE, 1)
+    print(r.get(GAME_STATE))
+
+
 def main():
     # declaim the global var
-    global button
+    global app
     global power
     global mode_var
     global switch1
     global switch2
     global switch3
     global wind_scale
+    global start_frame
+    global main_frame
 
     # r.set(HOOP_EE_POS, "[0.0, 0.0, 0.0]")
     # r.set(HOOP_EE_VEL, "[0.0, 0.0, 0.0]")
     r.set(SHOOTER_POWER, 0.5)
+    r.set(GAME_STATE, 0)
 
     # GAME_STATE = True
 
@@ -174,25 +192,31 @@ def main():
     # # Draw the image on the canvas
     # canvas.create_image(0, 0, anchor=tk.NW, image=photo)
 
+    # # create login frame
+    # start_frame = ctk.CTkFrame(app, corner_radius=0, width=1440, height=750)
+    # button_title = "GAME START"
+    # button = ctk.CTkButton(master=start_frame, text=button_title, command=button_function,
+    #                        font=('Berlin Sans FB Demi', 50))
+    # button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
+    # create main frame
+    main_frame = ctk.CTkFrame(app, corner_radius=0)
+    # main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
     # set the background image
     app.bg_image = ctk.CTkImage(Image.open("basketball_court.jpg"), size=(1440, 750))
-    app.bg_image_label = ctk.CTkLabel(app, image=app.bg_image)
+    app.bg_image_label = ctk.CTkLabel(main_frame, image=app.bg_image)
     app.bg_image_label.grid(row=0, column=0)
 
     # Start the Redis key retrieval loop
     check_redis_keys(KEYS, app)
-
-    # Use CTkButton instead of tkinter Button
-    button_title = KEYS[JOINT_ANGLES_KEY]
-    button = ctk.CTkButton(master=app, text=button_title, command=button_function)
-    button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # head title
     # title = ctk.CTkLabel(master=app, font=("Berlin Sans FB Demi", 30), text="Player Panel")
     # title.place(relx=0.5, rely=0.05, anchor=tk.CENTER)
 
     # power module
-    power_frame = ctk.CTkFrame(master=app, width=1200, height=120)
+    power_frame = ctk.CTkFrame(master=main_frame, width=1200, height=120)
     # power_frame = ctk.CTkFrame(master=app, width=1200, height=100)
     power_frame.place(relx=0.5, rely=0.1, anchor=tk.N)
     power_label = ctk.CTkLabel(master=power_frame, font=('Berlin Sans FB Demi', 40), text="Power")
@@ -203,7 +227,7 @@ def main():
     power.place(relx=0.2, rely=0.5, anchor=tk.W)
 
     # mode module
-    mode_frame = ctk.CTkFrame(master=app, width=1200, height=120)
+    mode_frame = ctk.CTkFrame(master=main_frame, width=1200, height=120)
     # mode_frame = ctk.CTkFrame(master=app, width=1200, height=100)
     mode_frame.place(relx=0.5, rely=0.25, anchor=tk.N)
     mode_label = ctk.CTkLabel(master=mode_frame, font=('Berlin Sans FB Demi', 40), text="Mode")
@@ -221,7 +245,7 @@ def main():
     switch1.select()
 
     # Preview module
-    preview_frame = ctk.CTkFrame(master=app, width=1200, height=400)
+    preview_frame = ctk.CTkFrame(master=main_frame, width=1200, height=400)
     preview_frame.place(relx=0.5, rely=0.4, anchor=tk.N)
     preview_label = ctk.CTkLabel(master=preview_frame, font=('Berlin Sans FB Demi', 40), text="Shooting Preview")
     preview_label.place(relx=0.05, rely=0.05, anchor=tk.W)
@@ -237,6 +261,18 @@ def main():
     app.shooting_angle_image_label.place(relx=0.75, rely=0.5, anchor=tk.CENTER)
     app.shooting_arrow_image = ctk.CTkImage(Image.open("arrow.png"), size=(200, 200))
 
+    launch_button_title = "Launch"
+    launch_button = ctk.CTkButton(master=preview_frame, text=launch_button_title, command=lauch_function,
+                           font=('Berlin Sans FB Demi', 50))
+    launch_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
+    # create login frame
+    start_frame = ctk.CTkFrame(app, corner_radius=0, width=1440, height=750)
+    start_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    button_title = "GAME START"
+    button = ctk.CTkButton(master=start_frame, text=button_title, command=button_function,
+                           font=('Berlin Sans FB Demi', 100))
+    button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     app.bind('<KeyPress>', on_keydown)
     app.bind('<KeyRelease>', on_keyup)
