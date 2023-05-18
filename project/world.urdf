@@ -4,37 +4,47 @@
 
 	<robot name="mmp_panda">
 		<model dir="./resources" path="mmp_panda.urdf" name="mmp_panda" />
-		<origin xyz="0.0 2.5 0.15" rpy="0 0 0" />
+		<origin xyz="0.0 5 0.25" rpy="0 0 0" />
 	</robot>
     
     <robot name="kuka_iiwa">
         <model dir="./resources" path="kuka_iiwa.urdf" name="kuka_iiwa" />
-        <origin xyz="0.0 -2.0 0.0" rpy="0 0 0" />
+        <origin xyz="0.0 -1.5 0.0" rpy="0 0 0" />
     </robot>
     
-    
-	<static_object name="Base">
-		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+
+	<static_object name="Court">
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0  -1.5707963" />
 	    <visual>
-	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
+	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 3.1415926" />
 	        <geometry>
-                <mesh filename="../../model/mmp_panda/meshes/visual/court_with_texture.obj" scale = "0.4 0.4 0.4" />
+                <mesh filename="../../model/mmp_panda/meshes/visual/court.obj" scale = "1 1 1" />
 	        </geometry>
 	    </visual>
         
 		<collision>
 	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
 	        <geometry>
-	            <box size="10 10 0.0127" />
+	            <box size="11 7 0.08" />
 	        </geometry>
 	    </collision>
 	</static_object>
+	
+	<static_object name="Sky">
+	    <visual>
+	        <origin xyz="0.0 0.0 -3.0" rpy="0.0 0.0 -1.57" />
+	        <geometry>
+                <mesh filename="../../model/mmp_panda/meshes/visual/sky.obj" scale = "50 50 50" />
+	        </geometry>
+	    </visual>
+	</static_object>
+
 
 	<dynamic_object name="basketball">
-		<origin xyz="0.0 -2.459451 1.5" rpy="0 0 0" />
+		<origin xyz="0.0 -1.9 1.6" rpy="0 0 0" />
 		<inertial>
         	<origin xyz="0 0 0" rpy="0 0 0" />
-        	<mass value="0.5" />
+        	<mass value="0.00000001" />
         	<inertia ixx="1" iyy="1" izz="1" ixy="0" ixz="0" iyz="0" />
       	</inertial>
 
@@ -58,7 +68,7 @@
 	    <collision>
 	        <origin xyz="0 0 0.06" rpy="0 0 0" />
 	        <geometry>
-                <sphere radius="0.002"/>
+                <sphere radius="0.2"/>
 	        </geometry>
 	    </collision>
 	</dynamic_object>
@@ -75,7 +85,7 @@
 	</light>
 
 	<camera name="camera_fixed">
-		<position xyz="-3.0 -4.0 2.5" />
+		<position xyz="-4.0 -4.0 3.0" />
 		<vertical xyz="0.0 0.0 1.0" />
 		<lookat xyz="0 0 0.5" />
 	</camera>

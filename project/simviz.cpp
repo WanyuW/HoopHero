@@ -86,7 +86,7 @@ int main() {
 	auto graphics = new Sai2Graphics::Sai2Graphics(world_file, true);
 	Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
-	graphics->_world->setBackgroundColor(66.0/255, 135.0/255, 245.0/255);  // set blue background 	
+	graphics->_world->setBackgroundColor(73.0/255, 192.0/255, 182.0/255);  // set static blue background
 //	graphics->showLinkFrame(true, robot_name, ee_link_name, 0.15);  // can add frames for different links
 	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);  // set the near and far clipping planes 
 
@@ -140,8 +140,8 @@ int main() {
 	// information about computer screen and GLUT display window
 	int screenW = mode->width;
 	int screenH = mode->height;
-	int windowW = 0.8 * screenH;
-	int windowH = 0.5 * screenH;
+	int windowW = 1.4 * screenH;
+	int windowH = 0.8 * screenH;
 	int windowPosY = (screenH - windowH) / 2;
 	int windowPosX = windowPosY;
 
@@ -184,9 +184,11 @@ int main() {
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
 		// add sphere for every nth count
-		if (count % 60 == 0) {  // default refresh rate 
-//			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
-//			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
+		if (count % 60 == 0) {  // default refresh rate
+//            string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
+//            addMesh(graphics, mesh_filename, start_pos, Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
+////			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
+////			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
 //			start_pos(1) += 1e-1;
 		}
 
@@ -421,10 +423,10 @@ void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
 			fSimulationRunning = false;
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
-		case GLFW_KEY_RIGHT:
+		case GLFW_KEY_D:
 			fTransXp = set;
 			break;
-		case GLFW_KEY_LEFT:
+		case GLFW_KEY_A:
 			fTransXn = set;
 			break;
 		case GLFW_KEY_UP:
@@ -433,10 +435,10 @@ void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
 		case GLFW_KEY_DOWN:
 			fTransYn = set;
 			break;
-		case GLFW_KEY_A:
+		case GLFW_KEY_W:
 			fTransZp = set;
 			break;
-		case GLFW_KEY_Z:
+		case GLFW_KEY_S:
 			fTransZn = set;
 			break;
 		default:
