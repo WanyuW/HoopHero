@@ -57,8 +57,7 @@ int flag = 0;
 RedisClient redis_client; 
 
 // simulation thread
-void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim,
-Sai2Graphics::Sai2Graphics* graphics);
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim);
 
 // callback to print glfw errors
 void glfwError(int error, const char* description);
@@ -112,6 +111,7 @@ int main() {
     // load second robot
     auto robot2 = new Sai2Model::Sai2Model(robot2_file, false);
     robot2->updateModel();
+    robot2->updateKinematics();
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
@@ -203,7 +203,7 @@ int main() {
     redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
 
 	// start simulation thread
-	thread sim_thread(simulation, robot, robot2, sim, graphics);
+	thread sim_thread(simulation, robot, robot2, sim);
 
 //	// start future simulation
 //    thread sim_thread_future(simulation, robot, robot2, sim_future);
@@ -328,8 +328,7 @@ int main() {
 
 //------------------------------------------------------------------------------
 
-void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim,
-Sai2Graphics::Sai2Graphics* graphics)
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim)
 {
 	// prepare simulation
 	int dof = robot->dof();
@@ -395,8 +394,8 @@ Sai2Graphics::Sai2Graphics* graphics)
 
 		// integrate forward
 		double curr_time = timer.elapsedTime();
-//		double loop_dt = curr_time - last_time;
-        double loop_dt = 0.001;
+		double loop_dt = curr_time - last_time;
+//        double loop_dt = 0.001;
 		sim->integrate(loop_dt);
     
 		// read joint positions, velocities, update model

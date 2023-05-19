@@ -150,7 +150,7 @@ def switch_event3():
 
 
 def lauch_function():
-    r.set(GAME_STATE, 1)
+    r.set(GAME_STATE, "1")
     print(r.get(GAME_STATE))
 
 
@@ -168,8 +168,9 @@ def main():
 
     # r.set(HOOP_EE_POS, "[0.0, 0.0, 0.0]")
     # r.set(HOOP_EE_VEL, "[0.0, 0.0, 0.0]")
-    r.set(SHOOTER_POWER, 0.5)
-    r.set(GAME_STATE, 0)
+    r.flushall()
+    r.set(SHOOTER_POWER, "0.5")
+    r.set(GAME_STATE, "0")
 
     # GAME_STATE = True
 
