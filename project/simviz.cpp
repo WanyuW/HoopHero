@@ -71,6 +71,9 @@ void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods);
 // callback when a mouse button is pressed
 void mouseClick(GLFWwindow* window, int button, int action, int mods);
 
+// predict the future position for the obj
+Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_duration, double curr_time, Simulation::Sai2Simulation* sim);
+
 // flags for scene camera movement
 bool fTransXp = false;
 bool fTransXn = false;
@@ -103,8 +106,8 @@ int main() {
 
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
-	// robot->_q = VectorXd::Zero(7);
-	// robot->_dq = VectorXd::Zero(7);
+//    robot->_q = VectorXd::Zero(10);
+//    robot->_dq = VectorXd::Zero(10);
 	robot->updateModel();
     robot->updateKinematics();
     
@@ -118,11 +121,6 @@ int main() {
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
 
-//	// load estimation world
-//	auto sim_future = new Simulation::Sai2Simulation(world_file, false);
-//	sim_future->setJointPositions(robot_name, robot->_q);
-//	sim_future->setJointVelocities(robot_name, robot->_dq);
-
 
 	// fill in object information 
 	for (int i = 0; i < n_objects; ++i) {
@@ -134,32 +132,14 @@ int main() {
 		object_lin_vel.push_back(_object_lin_vel);
 		object_ori.push_back(_object_ori);
 		object_ang_vel.push_back(_object_ang_vel);
-
-//		// estimation of future pos
-//		// future objs
-//		Vector3d _object_future_pos, _object_future_lin_vel, _object_future_ang_vel;
-//		Quaterniond _object_future_ori;
-//		sim_future->getObjectPosition(object_names[i], _object_future_pos, _object_future_ori);
-//		sim_future->getObjectVelocity(object_names[i], _object_future_lin_vel, _object_future_ang_vel);
-//		object_future_pos.push_back(_object_future_pos);
-//		object_future_lin_vel.push_back(_object_future_lin_vel);
-//		object_future_ori.push_back(_object_future_ori);
-//		object_future_ang_vel.push_back(_object_future_ang_vel);
 	}
 
     // set co-efficient of restition to zero for force control
-    sim->setCollisionRestitution(0.0);
-
-//    // future
-//    sim_future->setCollisionRestitution(0.0);
+    sim->setCollisionRestitution(1.0);
 
     // set co-efficient of friction
     sim->setCoeffFrictionStatic(0.0);
     sim->setCoeffFrictionDynamic(0.0);
-
-//    // set co-efficient of friction for future
-//    sim_future->setCoeffFrictionStatic(0.0);
-//    sim_future->setCoeffFrictionDynamic(0.0);
 
 	/*------- Set up visualization -------*/
 	// set up error callback
@@ -204,9 +184,6 @@ int main() {
 
 	// start simulation thread
 	thread sim_thread(simulation, robot, robot2, sim);
-
-//	// start future simulation
-//    thread sim_thread_future(simulation, robot, robot2, sim_future);
 
 	// initialize glew
 	glewInitialize();
@@ -416,37 +393,10 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 
         // calculate future pos
         if (flag == 0 && curr_time >= 1.59 && curr_time <= 1.6) {
-            // calculate the position 1s later than 0.5s
-            curr_pos = object_pos[0];
-            curr_ori = object_ori[0];
-            curr_lin_vel = object_lin_vel[0];
-            curr_ang_vel = object_ang_vel[0];
-		    double time_step = 0.1;  // calculate 1s later
-		    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
-		    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-//		    g = sim->_world->getGravity();
-            object_future_pos << curr_pos + curr_lin_vel * time_step + 0.5 * gra_g * time_step * time_step;
-            cout << "current position" << endl;
-            cout << curr_time << '\t' << object_pos[0].transpose() << endl;
-            cout << "future position" << endl;
-            cout << "1.7 s" << '\t' << object_future_pos.transpose() << endl;
-//            object_future_pos << curr_pos[0] + curr_lin_vel[0] * time_step;
-//            curr_ori[i] = object_ori[i];
-//            curr_lin_vel[i] = object_lin_vel[i];
-//            curr_ang_vel[i] = object_ang_vel[i];
-            flag = 1;
+            double time_duration = 0.1;
+            object_future_pos = posPrediction(object_pos[0], object_lin_vel[0], time_duration, curr_time, sim);
             pred_start_time = curr_time;
         }
-
-//        if (flag == 1 && curr_time >= 1.69 && curr_time <= 1.7) {
-//            cout << "real position" << endl;
-//            cout << curr_time << '\t' << object_pos[0].transpose() << endl;
-////            object_future_pos << curr_pos[0] + curr_lin_vel[0] * time_step;
-////            curr_ori[i] = object_ori[i];
-////            curr_lin_vel[i] = object_lin_vel[i];
-////            curr_ang_vel[i] = object_ang_vel[i];
-//            flag = 0;
-//        }
 
         if (flag == 1) {
             sim_pred_counter++;
@@ -556,5 +506,25 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 		default:
 			break;
 	}
+}
+
+//------------------------------------------------------------------------------
+
+Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_duration, double curr_time, Simulation::Sai2Simulation* sim)
+{
+    // create the future position vector
+    Vector3d object_future_pos;
+    // read the gravity
+    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+    // calculate and print out
+    object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
+    cout << "current position" << endl;
+    cout << curr_time << '\t' << curr_pos.transpose() << endl;
+    cout << "future position" << endl;
+    cout << curr_time + time_duration << '\t' << object_future_pos.transpose() << endl;
+    flag = 1;
+    redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
+    return object_future_pos;
 }
 

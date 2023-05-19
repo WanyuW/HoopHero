@@ -152,10 +152,11 @@ int main() {
 	joint_task2->_kp = 400.0;
 	joint_task2->_kv = 40.0;
 
+
 	std::string mode;
 	//mode = redis_client.get(SHOOTER_MODE);
-    mode  = "straight";
 	VectorXd q_init_desired2(dof2); //initial joint space for kuka
+	mode = "straight";
 	if (mode == "straight") {
 	q_init_desired2 <<  0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
 	}
@@ -167,10 +168,8 @@ int main() {
 	else if (mode == "high_arc") {
 	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 30.0, 0.0;
 	} // three shooting modes.
-
 	q_init_desired2 *= M_PI/180.0;
 	joint_task2->_desired_position = q_init_desired2;
-
 
 
 	// containers
@@ -211,11 +210,6 @@ int main() {
         start_time = timer.elapsedTime(); //secs
         fTimerDidSleep = true;
         runloop = true;
-
-//        base_pose_init_desired(0)=0;
-//        base_pose_init_desired(1)=0;
-//        x_init_desired(0) += base_pose_init_desired(0); //ee_x
-//        x_init_desired(1) += base_pose_init_desired(1); //ee_y
 
         while (runloop) {
 
@@ -324,13 +318,9 @@ int main() {
 
                 x_desired(0) = -2;
                 x_desired(1) = -4;
-                x_desired(2) = 0.35;
+                x_desired(2) = 1;
                 base_pose_init_desired(0) = x_desired(0);
                 base_pose_init_desired(1) = x_desired(1);
-
-//                x_desired(0) += base_pose_init_desired(0); //ee_x
-//                x_desired(1) += base_pose_init_desired(1); //ee_y
-
 
                 posori_task->_desired_position = x_desired;
                 base_task->_desired_position = base_pose_init_desired;
@@ -362,13 +352,11 @@ int main() {
                     state = INITIALIZE;
                 }
             }
+		// execute redis write callback
+		redis_client.executeWriteCallback(0);
 
-            // execute redis write callback
-            redis_client.executeWriteCallback(0);
-
-            counter++;
-        }
-        }
+		counter++;
+	}
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";
@@ -376,7 +364,8 @@ int main() {
     std::cout << "Controller Loop updates   : " << timer.elapsedCycles() << "\n";
     std::cout << "Controller Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
 
-//		redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, 0 * command_torques);  // back to floating
+    redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, 0 * command_torques);  // back to floating
 
 	return 0;
+    }
 }

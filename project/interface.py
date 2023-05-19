@@ -41,6 +41,7 @@ KEYS = {
 app = None
 power = None
 r = redis.Redis()
+r.flushall()
 start_time = None
 end_time = None
 time_flag = 0
@@ -66,7 +67,7 @@ def button_function():
     start_frame.place_forget()  # remove login frame
     print("pressed")
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
-    print(r.get(GAME_STATE))
+    print(r.get(GAME_STATE).decode())
 
 
 def check_redis_keys(keys, app):
@@ -103,7 +104,7 @@ def on_keyup(event):
             # print(start_time, duration, end_time)
             power_progress = duration/10
             power.set(power_progress)
-            r.set(SHOOTER_POWER, power_progress)
+            r.set(SHOOTER_POWER, str(power_progress))
             power.update()
             # print(power_progress, KEYS[SHOOTER_POWER], power.get())
             time_flag = 0
@@ -151,7 +152,11 @@ def switch_event3():
 
 def lauch_function():
     r.set(GAME_STATE, "1")
+<<<<<<< HEAD
     print(r.get(GAME_STATE))
+=======
+    print(r.get(GAME_STATE).decode())
+>>>>>>> 8b7bec4722973d303ac44b7472bda65a022b7bae
 
 
 def main():
@@ -168,9 +173,15 @@ def main():
 
     # r.set(HOOP_EE_POS, "[0.0, 0.0, 0.0]")
     # r.set(HOOP_EE_VEL, "[0.0, 0.0, 0.0]")
+<<<<<<< HEAD
     r.flushall()
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
+=======
+    r.set(SHOOTER_POWER, "0.5")
+    r.set(GAME_STATE, "0")
+    r.set(SHOOTER_MODE, "straight")
+>>>>>>> 8b7bec4722973d303ac44b7472bda65a022b7bae
 
     # GAME_STATE = True
 
@@ -244,6 +255,7 @@ def main():
                             variable=mode_var, onvalue="high_arc", switch_width=70, switch_height=30)
     switch3.place(relx=0.8, rely=0.35, anchor=tk.W)
     switch1.select()
+    # r.set(SHOOTER_MODE, "straight")
 
     # Preview module
     preview_frame = ctk.CTkFrame(master=main_frame, width=1200, height=400)

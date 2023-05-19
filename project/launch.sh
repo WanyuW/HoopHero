@@ -19,14 +19,13 @@ function ctrl_c() {
     kill -2 $SIMVIZ_PID  
 }
 
-sleep 2
+sleep 3
 
 
 # launch controller
 ./controller &
 CONTROLLER_PID=$!
 
-sleep 1
 
 # launch interfaces server
 #python3 interface/server.py HoopHero.html &
