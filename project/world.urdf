@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 
-<world name="demo_world" gravity="0.0 0.0 -5">
+<world name="demo_world" gravity="0.0 0.0 -9.81">
 
 	<robot name="mmp_panda">
 		<model dir="./resources" path="mmp_panda.urdf" name="mmp_panda" />
@@ -41,7 +41,7 @@
 
 
 	<dynamic_object name="basketball">
-		<origin xyz="0.0 -1.9 1.6" rpy="0 0 0" />
+		<origin xyz="0.0 -1.9 9.6" rpy="0 0 0" />
 		<inertial>
         	<origin xyz="0 0 0" rpy="0 0 0" />
         	<mass value="0.0000001" />

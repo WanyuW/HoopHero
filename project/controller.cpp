@@ -38,13 +38,6 @@ enum State
 	HOOP_MOVE = 1,
 };
 
-enum Mode
-{
-    Mode1 = 0,
-    Mode2 = 1,
-    Mode3 = 2,
-};
-
 int main() {
 
 	// initial state
@@ -159,21 +152,22 @@ int main() {
 
 
 	VectorXd q_init_desired2(dof2);
-	if (Mode == Mode1) {
+	std::string mode;
+	mode = redis_client.get(SHOOTER_MODE);
+	if (mode == "straight") {
 	q_init_desired2 <<  0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
 	}
 
-	else if (Mode == Mode2) {
+	else if (mode == "low_arc") {
 	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 10.0, 0.0;
 	}
 
-	else if (Mode == Mode2) {
+	else if (mode == "high_arc") {
 	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 10.0, 0.0;
 	} // three shooting modes.
 
 	q_init_desired2 *= M_PI/180.0;
 	joint_task2->_desired_position = q_init_desired2;
-
 
 
 	// containers
@@ -199,6 +193,16 @@ int main() {
 	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS, ee_pos_shooter);
 	redis_client.addEigenToWriteCallback(0, HOOP_EE_POS, ee_pos);
 
+//	std::string game_state;
+//	game_state = redis_client.get(GAME_STATE);
+//	cout << "yes" << endl;
+//	cout << game_state << endl;
+
+//	while (game_state == "0") {
+//	}
+//
+//	cout << game_state << endl;
+
 	// create a timer
 	LoopTimer timer;
 	timer.initializeTimer();
@@ -215,6 +219,7 @@ int main() {
 	base_pose_init_desired(1)=0;
 	x_init_desired(0) += base_pose_init_desired(0); //ee_x
 	x_init_desired(1) += base_pose_init_desired(1);//e_y
+
 	while (runloop) {
 		// wait for next scheduled loop
 		timer.waitForNextLoop();
@@ -285,7 +290,6 @@ int main() {
 				arm_joint_task->reInitializeTask();
 				posori_task->reInitializeTask();
 				robot->position(ee_pos, control_link, control_point);
-        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
 
 				// command_torques = 0 * (base_task_torques + arm_joint_task_torques + posori_task_torques);
 
