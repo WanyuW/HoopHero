@@ -12,6 +12,7 @@ HOOP_STATE_KEY = "sai2::sim::hoop::state"
 # shooter's info
 SHOOTER_POWER = "sai2::shooter::power"
 SHOOTER_MODE = "sai2::sim::shooter::mode"
+SHOOTING_ANGLE = "sai2::shooter::shooting_angle"
 
 # ball's info
 BALL_POS = "sai2::sim::basketball_pos"

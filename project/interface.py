@@ -3,6 +3,9 @@ import random
 import redis
 import numpy as np
 import time
+import subprocess
+import math
+import os
 
 # importing libraries for interface
 import tkinter as tk
@@ -30,6 +33,7 @@ KEYS = {
     # shooter's info
     SHOOTER_POWER: "",
     SHOOTER_MODE: "",
+    SHOOTING_ANGLE: "",
 
     # ball's info
     BALL_POS: "",
@@ -49,9 +53,14 @@ mode_var = None
 switch1 = None
 switch2 = None
 switch3 = None
-wind_scale = "0"
 start_frame = None
 main_frame = None
+wind_canvas = None
+wind_line = None
+wind_text = None
+angle_canvas = None
+angle_line = None
+angle_text = None
 
 
 def button_function():
@@ -72,13 +81,27 @@ def button_function():
 
 def check_redis_keys(keys, app):
     # Retrieve the updated Redis keys using appropriate Redis commands
+    global wind_canvas, wind_line, wind_text
+    global angle_canvas, angle_line, angle_text
+
     for key, value in keys.items():
         value = r.get(key)
         if value is not None:
             keys[key] = value.decode()
 
     # Process the retrieved keys and update your application state
-    #
+    shooting_angle = int(r.get(SHOOTING_ANGLE))  # takes in degrees
+    shooting_radian = math.radians(shooting_angle)
+    arrow_length = 75
+    angle_canvas.delete(angle_line)
+    angle_line = angle_canvas.create_line(176, 126, 176 - arrow_length * math.sin(shooting_radian),
+                                          126 - arrow_length * math.cos(shooting_radian), fill="#990000",
+                                          width=10, arrow="last", arrowshape=(15, 15, 5))
+    angle_canvas.delete(angle_text)
+    angle_text = angle_canvas.create_text(176, 260, anchor=tk.CENTER, text="Shooting angle = " + str(shooting_angle)
+                                                                           + u"\u00b0",
+                                          font=('Berlin Sans FB Demi', 35), fill="gray84")
+    angle_canvas.update()
 
     # Schedule the next Redis key retrieval after a certain interval
     app.after(10, check_redis_keys, keys, app)  # Adjust the interval as needed
@@ -87,10 +110,25 @@ def check_redis_keys(keys, app):
 def on_keydown(event):
     global start_time
     global time_flag
+    global wind_canvas, wind_line, wind_text
     if event.char == ' ':
         start_time = time.time()
         time_flag = 1
         # print(start_time)
+
+    # random wind
+    if event.char == 'r':
+        wind_scale = random.random() * 5
+        wind_angle = random.random() * math.pi * 2
+        arrow_length = 75
+        wind_canvas.delete(wind_line)
+        wind_line = wind_canvas.create_line(176, 126, 176 - arrow_length * wind_scale / 5 * math.sin(wind_angle),
+                                            126 - arrow_length * wind_scale / 5 * math.cos(wind_angle), fill="#990000",
+                                            width=10, arrow="last", arrowshape=(15, 15, 5))
+        wind_canvas.delete(wind_text)
+        wind_text = wind_canvas.create_text(176, 260, anchor=tk.CENTER, text="Wind scale = {:.2f}".format(wind_scale),
+                                            font=('Berlin Sans FB Demi', 35), fill="gray84")
+        wind_canvas.update()
 
 
 def on_keyup(event):
@@ -102,7 +140,7 @@ def on_keyup(event):
             end_time = time.time()
             duration = end_time - start_time
             # print(start_time, duration, end_time)
-            power_progress = duration/10
+            power_progress = duration / 10
             power.set(power_progress)
             r.set(SHOOTER_POWER, str(power_progress))
             power.update()
@@ -152,11 +190,12 @@ def switch_event3():
 
 def lauch_function():
     r.set(GAME_STATE, "1")
-<<<<<<< HEAD
-    print(r.get(GAME_STATE))
-=======
     print(r.get(GAME_STATE).decode())
->>>>>>> 8b7bec4722973d303ac44b7472bda65a022b7bae
+    subprocess.Popen(["./controller"])  # Launch the controller process in the background
+
+    # Save the controller process ID to a file
+    with open("controller_pid.txt", "w") as pid_file:
+        pid_file.write(str(os.getpid()))
 
 
 def main():
@@ -167,21 +206,17 @@ def main():
     global switch1
     global switch2
     global switch3
-    global wind_scale
     global start_frame
     global main_frame
+    global wind_canvas, wind_line, wind_text
+    global angle_canvas, angle_line, angle_text
 
     # r.set(HOOP_EE_POS, "[0.0, 0.0, 0.0]")
     # r.set(HOOP_EE_VEL, "[0.0, 0.0, 0.0]")
-<<<<<<< HEAD
-    r.flushall()
-    r.set(SHOOTER_POWER, "0.5")
-    r.set(GAME_STATE, "0")
-=======
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
     r.set(SHOOTER_MODE, "straight")
->>>>>>> 8b7bec4722973d303ac44b7472bda65a022b7bae
+    r.set(SHOOTING_ANGLE, "0")
 
     # GAME_STATE = True
 
@@ -220,9 +255,6 @@ def main():
     app.bg_image_label = ctk.CTkLabel(main_frame, image=app.bg_image)
     app.bg_image_label.grid(row=0, column=0)
 
-    # Start the Redis key retrieval loop
-    check_redis_keys(KEYS, app)
-
     # head title
     # title = ctk.CTkLabel(master=app, font=("Berlin Sans FB Demi", 30), text="Player Panel")
     # title.place(relx=0.5, rely=0.05, anchor=tk.CENTER)
@@ -235,7 +267,7 @@ def main():
     power_label.place(relx=0.05, rely=0.5, anchor=tk.W)
     power = ctk.CTkProgressBar(master=power_frame, orientation="horizontal", mode="determinate", width=900, height=50,
                                border_color='black', border_width=2, progress_color="#1f538d")
-    power.set(float(KEYS[SHOOTER_POWER]))
+    power.set(float(r.get(SHOOTER_POWER)))
     power.place(relx=0.2, rely=0.5, anchor=tk.W)
 
     # mode module
@@ -262,35 +294,66 @@ def main():
     preview_frame.place(relx=0.5, rely=0.4, anchor=tk.N)
     preview_label = ctk.CTkLabel(master=preview_frame, font=('Berlin Sans FB Demi', 40), text="Shooting Preview")
     preview_label.place(relx=0.05, rely=0.05, anchor=tk.W)
+    # use canvas
     # wind module
-    app.wind_image = ctk.CTkImage(Image.open("wind.png"), size=(200, 200))
-    app.wind_image_label = ctk.CTkLabel(preview_frame, text="Wind scale = " + wind_scale, image=app.wind_image,
-                                        compound="top", font=('Berlin Sans FB Demi', 35), pady=20)
-    app.wind_image_label.place(relx=0.25, rely=0.5, anchor=tk.CENTER)
-    # angle module
-    app.shooting_angle_image = ctk.CTkImage(Image.open("angle.png"), size=(200, 200))
-    app.shooting_angle_image_label = ctk.CTkLabel(preview_frame, text="Shooting angle", image=app.shooting_angle_image,
-                                                  compound="top", font=('Berlin Sans FB Demi', 35), pady=20)
-    app.shooting_angle_image_label.place(relx=0.75, rely=0.5, anchor=tk.CENTER)
-    app.shooting_arrow_image = ctk.CTkImage(Image.open("arrow.png"), size=(200, 200))
+    wind_canvas = tk.Canvas(app, width=350, height=300, background="gray16", highlightthickness=0)
+    wind_canvas.place(relx=0.28, rely=0.7, anchor=tk.CENTER)
+    wind_image = Image.open("wind.png")
+    wind_image = wind_image.resize((200, 200), Image.LANCZOS)  # Resize the image to fit the window
+    wind_photo = ImageTk.PhotoImage(wind_image)  # Create a Tkinter-compatible photo image from the PIL image
+    wind_canvas.create_image(175, 125, anchor=tk.CENTER, image=wind_photo)
+    wind_canvas.create_oval(165, 115, 185, 135, fill="#990000", outline="#990000")
+    wind_line = wind_canvas.create_line(176, 126, 176, 50, fill="#990000", width=10, arrow="last",
+                                        arrowshape=(15, 15, 5))
+    wind_text = wind_canvas.create_text(176, 260, anchor=tk.CENTER, text="Wind scale: 0",
+                                        font=('Berlin Sans FB Demi', 35),
+                                        fill="gray84")
 
+    # angle module
+    angle_canvas = tk.Canvas(app, width=350, height=300, background="gray16", highlightthickness=0)
+    angle_canvas.place(relx=0.72, rely=0.7, anchor=tk.CENTER)
+    angle_image = Image.open("angle.png")
+    angle_image = angle_image.resize((200, 200), Image.LANCZOS)  # Resize the image to fit the window
+    angle_photo = ImageTk.PhotoImage(angle_image)  # Create a Tkinter-compatible photo image from the PIL image
+    angle_canvas.create_image(175, 125, anchor=tk.CENTER, image=angle_photo)
+    angle_canvas.create_oval(165, 115, 185, 135, fill="#990000", outline="#990000")
+    shooting_angle = int(r.get(SHOOTING_ANGLE))  # takes in degrees
+    shooting_radian = math.radians(shooting_angle)
+    arrow_length = 75
+    angle_line = angle_canvas.create_line(176, 126, 176 - arrow_length * math.sin(shooting_radian),
+                                          126 - arrow_length * math.cos(shooting_radian), fill="#990000",
+                                          width=10, arrow="last", arrowshape=(15, 15, 5))
+    angle_text = angle_canvas.create_text(176, 260, anchor=tk.CENTER, text="Shooting angle = " + str(shooting_angle)
+                                                                           + u"\u00b0",
+                                          font=('Berlin Sans FB Demi', 35), fill="gray84")
+    # canvas.pack()
+
+    # launch controller
     launch_button_title = "Launch"
     launch_button = ctk.CTkButton(master=preview_frame, text=launch_button_title, command=lauch_function,
-                           font=('Berlin Sans FB Demi', 50))
+                                  font=('Berlin Sans FB Demi', 50), border_spacing=10, fg_color="#414141",
+                                  hover_color="#2f2f2f")
     launch_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # create login frame
-    start_frame = ctk.CTkFrame(app, corner_radius=0, width=1440, height=750)
+    start_frame = ctk.CTkFrame(app, corner_radius=0, width=1440, height=750, fg_color="#0a053f")
     start_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-    button_title = "GAME START"
+    game_title = ctk.CTkLabel(start_frame, text="HOOPHERO", font=('Blox (BRK)', 275), text_color="#aba7e8")
+    game_title.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
+    button_title = "PRESS START"
     button = ctk.CTkButton(master=start_frame, text=button_title, command=button_function,
-                           font=('Berlin Sans FB Demi', 100))
-    button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+                           font=('Berlin Sans FB Demi', 80), border_spacing=20, text_color="#8885b7",
+                           bg_color="#0a053f", hover_color="#0a053f", fg_color="#0a053f")
+    button.place(relx=0.5, rely=0.75, anchor=tk.CENTER)
+
+    # Start the Redis key retrieval loop
+    check_redis_keys(KEYS, app)
 
     app.bind('<KeyPress>', on_keydown)
     app.bind('<KeyRelease>', on_keyup)
 
     app.mainloop()
+
 
 if __name__ == "__main__":
     main()

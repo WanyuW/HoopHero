@@ -203,7 +203,7 @@ int main() {
 	runloop = false; // timer in waiting state
 	unsigned long long counter = 0;
 
-	if (game_state == "0") {
+	if (game_state == "1") {
 
         timer.initializeTimer();
         timer.setLoopFrequency(1000);
