@@ -65,6 +65,8 @@ angle_canvas = None
 angle_line = None
 angle_text = None
 shooting_angle_input = ""
+launch_button = None
+launch_process = None
 
 
 def button_function():
@@ -95,6 +97,7 @@ def check_redis_keys(keys, app):
     # Retrieve the updated Redis keys using appropriate Redis commands
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
+    global launch_process
 
     for key, value in keys.items():
         if r.exists(key):
@@ -115,6 +118,11 @@ def check_redis_keys(keys, app):
                                                                            + u"\u00b0",
                                           font=('Berlin Sans FB Demi', 35), fill="gray84")
     angle_canvas.update()
+
+    if (KEYS[CONTROLLER_RUNNING_KEY] == "0"):
+        print(r.get(CONTROLLER_RUNNING_KEY).decode())
+        if launch_process is not None:
+            launch_process.terminate()
 
     # Schedule the next Redis key retrieval after a certain interval
     app.after(10, check_redis_keys, keys, app)  # Adjust the interval as needed
@@ -205,13 +213,23 @@ def switch_event3():
 
 
 def launch_function():
+    global launch_button
+    global reset_button
+    global shoot_button
+    global launch_process
     r.set(GAME_STATE, "1")
     print(r.get(GAME_STATE).decode())
-    subprocess.Popen(["./controller"])  # Launch the controller process in the background
+    launch_process = subprocess.Popen(["./controller"])  # Launch the controller process in the background
 
     # Save the controller process ID to a file
     with open("controller_pid.txt", "w") as pid_file:
         pid_file.write(str(os.getpid()))
+
+    # launch_button.place_forget()  # remove launch button
+    #
+    # reset_button.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
+    # shoot_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
 
 
 def mouse_click(event):
@@ -257,6 +275,14 @@ def mouse_click(event):
         window.mainloop()
 
 
+def reset_function():
+    r.set(CONTROLLER_RUNNING_KEY, "0")
+
+
+def shoot_function():
+    r.set(CONTROLLER_RUNNING_KEY, "1")
+
+
 def main():
     # declaim the global var
     global app
@@ -269,6 +295,9 @@ def main():
     global main_frame
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
+    global launch_button
+    global reset_button
+    global shoot_button
 
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
@@ -369,7 +398,7 @@ def main():
                                   hover_color="#2f2f2f")
     launch_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-    # create login frame
+    # create start frame
     start_frame = ctk.CTkFrame(app, corner_radius=0, width=1440, height=750, fg_color="#0a053f")
     start_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
     game_title = ctk.CTkLabel(start_frame, text="HOOPHERO", font=('Blox (BRK)', 275), text_color="#aba7e8")
@@ -379,6 +408,16 @@ def main():
                            font=('Berlin Sans FB Demi', 80), border_spacing=20, text_color="#8885b7",
                            bg_color="#0a053f", hover_color="#0a053f", fg_color="#0a053f")
     button.place(relx=0.5, rely=0.75, anchor=tk.CENTER)
+
+    # shoot button and reset button
+    reset_button_title = "Reset"
+    reset_button = ctk.CTkButton(master=preview_frame, text=reset_button_title, command=reset_function,
+                                  font=('Berlin Sans FB Demi', 50), border_spacing=10, fg_color="#414141",
+                                  hover_color="#2f2f2f")
+    shoot_button_title = "Launch"
+    shoot_button = ctk.CTkButton(master=preview_frame, text=shoot_button_title, command=shoot_function,
+                                 font=('Berlin Sans FB Demi', 50), border_spacing=10, fg_color="#414141",
+                                 hover_color="#2f2f2f")
 
     # Start the Redis key retrieval loop
     check_redis_keys(KEYS, app)
