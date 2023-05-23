@@ -1,11 +1,11 @@
 import random
 
 import redis
-import numpy as np
 import time
 import subprocess
 import math
 import os
+import signal
 
 # importing libraries for interface
 import tkinter as tk
@@ -64,12 +64,6 @@ angle_text = None
 
 
 def button_function():
-    # global power
-    # power_progress = random.random()
-    # r.set(SHOOTER_POWER, power_progress)
-    # power.set(float(KEYS[SHOOTER_POWER]))
-    # power.update()
-    # print(KEYS[SHOOTER_POWER], power_progress)
     global app
     global start_frame
     global main_frame
@@ -78,6 +72,21 @@ def button_function():
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
     print(r.get(GAME_STATE).decode())
 
+    # simviz_process = subprocess.Popen(["./simviz"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    simviz_process = subprocess.Popen(["./simviz"])
+    simviz_pid = simviz_process.pid
+    # print("Simulation launched with PID:", simviz_pid)
+
+    # Function to handle Ctrl+C interruption
+    def ctrl_c(signal, frame):
+        simviz_process.terminate()
+        simviz_process.wait()
+        print("Simulation terminated")
+        exit(0)
+
+    # Set the signal handler
+    signal.signal(signal.SIGINT, ctrl_c)
+
 
 def check_redis_keys(keys, app):
     # Retrieve the updated Redis keys using appropriate Redis commands
@@ -85,9 +94,10 @@ def check_redis_keys(keys, app):
     global angle_canvas, angle_line, angle_text
 
     for key, value in keys.items():
-        value = r.get(key)
-        if value is not None:
-            keys[key] = value.decode()
+        if r.exists(key):
+            value = r.get(key)
+            if value is not None:
+                keys[key] = value.decode()
 
     # Process the retrieved keys and update your application state
     shooting_angle = int(r.get(SHOOTING_ANGLE))  # takes in degrees
@@ -193,9 +203,9 @@ def lauch_function():
     print(r.get(GAME_STATE).decode())
     subprocess.Popen(["./controller"])  # Launch the controller process in the background
 
-    # Save the controller process ID to a file
-    with open("controller_pid.txt", "w") as pid_file:
-        pid_file.write(str(os.getpid()))
+    # # Save the controller process ID to a file
+    # with open("controller_pid.txt", "w") as pid_file:
+    #     pid_file.write(str(os.getpid()))
 
 
 def main():
@@ -211,14 +221,10 @@ def main():
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
 
-    # r.set(HOOP_EE_POS, "[0.0, 0.0, 0.0]")
-    # r.set(HOOP_EE_VEL, "[0.0, 0.0, 0.0]")
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
     r.set(SHOOTER_MODE, "straight")
     r.set(SHOOTING_ANGLE, "0")
-
-    # GAME_STATE = True
 
     # interface template
     ctk.set_appearance_mode("dark")  # Modes: system (default), light, dark
@@ -229,23 +235,6 @@ def main():
     app.geometry("1440x750")
     app.title("HoopHero")
 
-    # # Load the background image
-    # image = Image.open("basketball_court.jpeg")
-    # image = image.resize((1440, 900), Image.LANCZOS)  # Resize the image to fit the window
-    # photo = ImageTk.PhotoImage(image)  # Create a Tkinter-compatible photo image from the PIL image
-    # # Create a Canvas widget and place it in the window
-    # canvas = tk.Canvas(app, width=1440, height=900)
-    # canvas.pack()
-    # # Draw the image on the canvas
-    # canvas.create_image(0, 0, anchor=tk.NW, image=photo)
-
-    # # create login frame
-    # start_frame = ctk.CTkFrame(app, corner_radius=0, width=1440, height=750)
-    # button_title = "GAME START"
-    # button = ctk.CTkButton(master=start_frame, text=button_title, command=button_function,
-    #                        font=('Berlin Sans FB Demi', 50))
-    # button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
     # create main frame
     main_frame = ctk.CTkFrame(app, corner_radius=0)
     # main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
@@ -254,10 +243,6 @@ def main():
     app.bg_image = ctk.CTkImage(Image.open("basketball_court.jpg"), size=(1440, 750))
     app.bg_image_label = ctk.CTkLabel(main_frame, image=app.bg_image)
     app.bg_image_label.grid(row=0, column=0)
-
-    # head title
-    # title = ctk.CTkLabel(master=app, font=("Berlin Sans FB Demi", 30), text="Player Panel")
-    # title.place(relx=0.5, rely=0.05, anchor=tk.CENTER)
 
     # power module
     power_frame = ctk.CTkFrame(master=main_frame, width=1200, height=120)
@@ -326,7 +311,6 @@ def main():
     angle_text = angle_canvas.create_text(176, 260, anchor=tk.CENTER, text="Shooting angle = " + str(shooting_angle)
                                                                            + u"\u00b0",
                                           font=('Berlin Sans FB Demi', 35), fill="gray84")
-    # canvas.pack()
 
     # launch controller
     launch_button_title = "Launch"
