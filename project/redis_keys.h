@@ -25,5 +25,6 @@ const std::string SHOOTER_MODE = "sai2::sim::shooter::mode";
 const std::string FUTURE_POS = "sai2::sim::basketball_future_pos";
 const std::string GAME_STATE = "sai2::game_state";
 const std::string SHOOTING_ANGLE = "sai2::shooter::shooting_angle";
+const std::string GRAVITY_KEY = "sai2::sim::world_gravity";
 
 

@@ -23,7 +23,7 @@ KEYS = {
     JOINT_VELOCITIES_KEY: "",
     JOINT_TORQUES_COMMANDED_KEY: "",
     CONTROLLER_RUNNING_KEY: "",
-    GAME_STATE: "",
+    GRAVITY_KEY: "",
 
     # hoop's info
     HOOP_EE_POS: "",
@@ -37,7 +37,10 @@ KEYS = {
 
     # ball's info
     BALL_POS: "",
-    BALL_VEL: ""
+    BALL_VEL: "",
+
+    # launch
+    GAME_STATE: ""
 }
 
 # global variable
@@ -130,6 +133,9 @@ def on_keydown(event):
     if event.char == 'r':
         wind_scale = random.random() * 5
         wind_angle = random.random() * math.pi * 2
+        gravityVec = [- wind_scale * math.sin(wind_angle), - wind_scale * math.cos(wind_angle), -9.81]
+        print(gravityVec)
+        r.set(GRAVITY_KEY, str(gravityVec))
         arrow_length = 75
         wind_canvas.delete(wind_line)
         wind_line = wind_canvas.create_line(176, 126, 176 - arrow_length * wind_scale / 5 * math.sin(wind_angle),
@@ -268,6 +274,7 @@ def main():
     r.set(GAME_STATE, "0")
     r.set(SHOOTER_MODE, "straight")
     r.set(SHOOTING_ANGLE, "0")
+    r.set(GRAVITY_KEY, str([0.0, 0.0, -9.81]))
 
     # interface template
     ctk.set_appearance_mode("dark")  # Modes: system (default), light, dark

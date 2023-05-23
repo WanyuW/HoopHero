@@ -199,12 +199,44 @@ int main() {
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
 		// add sphere for every nth count
-		if (count % 60 == 0) {  // default refresh rate
+		if (count % 120 == 0) {  // default refresh rate
 //            string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
 //            addMesh(graphics, mesh_filename, start_pos, Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
 ////			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
 ////			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
 //			start_pos(1) += 1e-1;
+
+            // get world gravity
+            chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+            Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+            cout << gra_g.transpose() << endl;
+
+            // fill in object information
+            for (int i = 0; i < n_objects; ++i) {
+                // Reset the dynamic object to the desired position and orientation
+                Vector3d _object_pos(0.0, -1.9, 1.2);
+                Quaterniond _object_ori(1, 0, 0, 0);
+                Vector3d _object_lin_vel;
+                Vector3d _object_ang_vel;
+
+                sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
+                sim->getObjectVelocity(object_names[i], _object_lin_vel, _object_ang_vel);
+
+                object_pos.push_back(_object_pos);
+                object_lin_vel.push_back(_object_lin_vel);
+                object_ori.push_back(_object_ori);
+                object_ang_vel.push_back(_object_ang_vel);
+
+//                // Set the object information in the corresponding vectors
+//                object_pos.clear();
+//                object_pos.push_back(_object_pos);
+//                object_ori.clear();
+//                object_ori.push_back(_object_ori);
+//                object_lin_vel.clear();
+//                object_lin_vel.push_back(_object_lin_vel);
+//                object_ang_vel.clear();
+//                object_ang_vel.push_back(_object_ang_vel);
+            }
 		}
 
 		// update graphics. this automatically waits for the correct amount of time
@@ -316,6 +348,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
     redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY_SHOOTER, command_torques2); //added for the second robot
 	VectorXd g = VectorXd::Zero(dof);
     VectorXd g2 = VectorXd::Zero(dof2);
+    Vector3d graVec = Vector3d::Zero(3);
 	string controller_status = "0";
 	double kv = 10;  // can be set to 0 if no damping is needed
 
@@ -327,6 +360,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 	redis_client.addStringToReadCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
 	redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
     redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY_SHOOTER, command_torques2);
+    redis_client.addEigenToReadCallback(0, GRAVITY_KEY, graVec);
 
 
 	// add to write callback
@@ -353,6 +387,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 
 		// execute redis read callback
 		redis_client.executeReadCallback(0);
+
+		// set world gravity
+		// chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+        // Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+		sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
 
 		// apply gravity compensation 
 		robot->gravityVector(g);
@@ -517,6 +556,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_dur
     // read the gravity
     chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
     Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+    cout << gra_g.transpose() << endl;
     // calculate and print out
     object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
     cout << "current position" << endl;
