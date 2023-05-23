@@ -61,6 +61,7 @@ wind_text = None
 angle_canvas = None
 angle_line = None
 angle_text = None
+shooting_angle_input = ""
 
 
 def button_function():
@@ -72,20 +73,19 @@ def button_function():
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
     print(r.get(GAME_STATE).decode())
 
-    # simviz_process = subprocess.Popen(["./simviz"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    simviz_process = subprocess.Popen(["./simviz"])
-    simviz_pid = simviz_process.pid
-    # print("Simulation launched with PID:", simviz_pid)
-
-    # Function to handle Ctrl+C interruption
-    def ctrl_c(signal, frame):
-        simviz_process.terminate()
-        simviz_process.wait()
-        print("Simulation terminated")
-        exit(0)
-
-    # Set the signal handler
-    signal.signal(signal.SIGINT, ctrl_c)
+    # simviz_process = subprocess.Popen(["./simviz"])
+    # simviz_pid = simviz_process.pid
+    # # print("Simulation launched with PID:", simviz_pid)
+    #
+    # # Function to handle Ctrl+C interruption
+    # def ctrl_c(signal, frame):
+    #     simviz_process.terminate()
+    #     simviz_process.wait()
+    #     print("Simulation terminated")
+    #     exit(0)
+    #
+    # # Set the signal handler
+    # signal.signal(signal.SIGINT, ctrl_c)
 
 
 def check_redis_keys(keys, app):
@@ -198,14 +198,57 @@ def switch_event3():
     # print("switch toggled, current value:", mode_var.get(), r.get(SHOOTER_MODE).decode())
 
 
-def lauch_function():
+def launch_function():
     r.set(GAME_STATE, "1")
     print(r.get(GAME_STATE).decode())
     subprocess.Popen(["./controller"])  # Launch the controller process in the background
 
-    # # Save the controller process ID to a file
-    # with open("controller_pid.txt", "w") as pid_file:
-    #     pid_file.write(str(os.getpid()))
+    # Save the controller process ID to a file
+    with open("controller_pid.txt", "w") as pid_file:
+        pid_file.write(str(os.getpid()))
+
+
+def mouse_click(event):
+    global shooting_angle_input
+    # Check if the mouse click event occurred within the desired area on the canvas
+    if (event.x - 175) ** 2 + (event.y - 125) ** 2 <= 200 * 200:
+        # Create a new window
+        window = ctk.CTkToplevel(app)
+        window.geometry("250x150")
+        window.title("Shooting angle editor")
+
+        # Create an entrybox in the new window
+        entrybox = ctk.CTkEntry(window, width=200, height=100, placeholder_text=KEYS[SHOOTING_ANGLE] + u"\u00b0",
+                                font=('Berlin Sans FB Demi', 40))
+        entrybox.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
+        def handle_enter_key(event):
+            value = entrybox.get()  # Get the entered value from the textbox
+            r.set(SHOOTING_ANGLE, str(value))
+            print("Entered value:", r.get(SHOOTING_ANGLE))  # Print the entered value
+
+            window.destroy()  # Close the window
+
+            global angle_canvas, angle_line, angle_text
+
+            # Process the retrieved keys and update your application state
+            shooting_angle = int(r.get(SHOOTING_ANGLE))  # takes in degrees
+            shooting_radian = math.radians(shooting_angle)
+            arrow_length = 75
+            angle_canvas.delete(angle_line)
+            angle_line = angle_canvas.create_line(176, 126, 176 - arrow_length * math.sin(shooting_radian),
+                                                  126 - arrow_length * math.cos(shooting_radian), fill="#990000",
+                                                  width=10, arrow="last", arrowshape=(15, 15, 5))
+            angle_canvas.delete(angle_text)
+            angle_text = angle_canvas.create_text(176, 260, anchor=tk.CENTER,
+                                                  text="Shooting angle = " + str(shooting_angle)
+                                                       + u"\u00b0",
+                                                  font=('Berlin Sans FB Demi', 35), fill="gray84")
+            angle_canvas.update()
+
+        entrybox.bind("<Return>", handle_enter_key)  # Bind the Enter key event to handle_enter_key
+
+        window.mainloop()
 
 
 def main():
@@ -314,7 +357,7 @@ def main():
 
     # launch controller
     launch_button_title = "Launch"
-    launch_button = ctk.CTkButton(master=preview_frame, text=launch_button_title, command=lauch_function,
+    launch_button = ctk.CTkButton(master=preview_frame, text=launch_button_title, command=launch_function,
                                   font=('Berlin Sans FB Demi', 50), border_spacing=10, fg_color="#414141",
                                   hover_color="#2f2f2f")
     launch_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
@@ -335,6 +378,9 @@ def main():
 
     app.bind('<KeyPress>', on_keydown)
     app.bind('<KeyRelease>', on_keyup)
+
+    # Bind the mouse click event to handle_mouse_click
+    angle_canvas.bind("<Button-1>", mouse_click)
 
     app.mainloop()
 
