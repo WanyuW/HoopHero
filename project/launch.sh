@@ -8,23 +8,23 @@ fi
 python3 interface.py &
 SERVER_PID=$! #run interface first
 
-# launch simulation then
-./simviz &
-SIMVIZ_PID=$!
+## launch simulation then
+#./simviz &
+#SIMVIZ_PID=$!
+#
+## trap ctrl-c and call ctrl_c()
+#trap ctrl_c INT
+#
+#function ctrl_c() {
+#    kill -2 $SIMVIZ_PID
+#}
+#
+#sleep 3
 
-# trap ctrl-c and call ctrl_c()
-trap ctrl_c INT
 
-function ctrl_c() {
-    kill -2 $SIMVIZ_PID  
-}
-
-sleep 3
-
-
-# launch controller
-./controller &
-CONTROLLER_PID=$!
+## launch controller
+#./controller &
+#CONTROLLER_PID=$!
 
 
 # launch interfaces server
