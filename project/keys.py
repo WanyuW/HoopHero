@@ -3,6 +3,8 @@ JOINT_ANGLES_KEY = "sai2::sim::panda::sensors::q"
 JOINT_VELOCITIES_KEY = "sai2::sim::panda::sensors::dq"
 JOINT_TORQUES_COMMANDED_KEY = "sai2::sim::panda::actuators::fgc"
 CONTROLLER_RUNNING_KEY = "sai2::sim::panda::controller"
+GRAVITY_KEY = "sai2::sim::world_gravity"
+
 
 # hoop's info
 HOOP_EE_POS = "sai2::hoop::ee_pos"
