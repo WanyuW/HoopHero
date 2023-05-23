@@ -162,9 +162,15 @@
         <visual>
             <origin xyz="-0.1 0 0.2" rpy="0 0.5 3.1415926" />
             <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/launcher.obj" scale="10 10 10" />
+                <mesh filename="../../../model/iiwa7/meshes/launcher1.obj" scale="10 10 10" />
             </geometry>
         </visual>
+        <collision>
+            <origin xyz="-0.1 0 0.2" rpy="0 0.5 3.1415926" />
+            <geometry>
+                <mesh filename="../../../model/iiwa7/meshes/launcher1.obj" scale="10 10 10" />
+            </geometry>
+        </collision>
         
         
     </link>
