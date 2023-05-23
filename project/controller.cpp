@@ -117,7 +117,7 @@ int main() {
 	auto base_task = new Sai2Primitives::PartialJointTask(robot, base_joint_selection);
 	base_task->_use_interpolation_flag = false;  // turn off if trajectory following; else turn on
 	base_task->_use_velocity_saturation_flag = true;
-	base_task->_saturation_velocity << 0.7, 0.7, 0;  // adjust based on speed
+	base_task->_saturation_velocity << 0.8, 0.8, 0;  // adjust based on speed
 
 	VectorXd base_task_torques = VectorXd::Zero(dof);
 	base_task->_kp = 300;
@@ -134,7 +134,7 @@ int main() {
 
 	VectorXd arm_joint_task_torques = VectorXd::Zero(dof);
 	arm_joint_task->_kp = 100;
-	arm_joint_task->_kv = 40;
+	arm_joint_task->_kv = 25;
 
 	// set the desired posture
 	VectorXd q_init_desired = initial_q.tail(7);
@@ -156,21 +156,7 @@ int main() {
 	std::string mode;
 	//mode = redis_client.get(SHOOTER_MODE);
 	VectorXd q_init_desired2(dof2); //initial joint space for kuka
-	mode = "straight";
-	if (mode == "straight") {
-	q_init_desired2 <<  0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
-	}
-
-	else if (mode == "low_arc") {
-	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 20.0, 0.0;
-	}
-
-	else if (mode == "high_arc") {
-	q_init_desired2 <<  0.0, 30.0, 0.0, -40.0, 0.0, 30.0, 0.0;
-	} // three shooting modes.
-	q_init_desired2 *= M_PI/180.0;
-	joint_task2->_desired_position = q_init_desired2;
-
+	mode = "high_arc";  // need to revise to catch key from interface
 
 	// containers
 	Matrix3d ee_rot;
@@ -203,7 +189,7 @@ int main() {
 	runloop = false; // timer in waiting state
 	unsigned long long counter = 0;
 
-	if (game_state == "1") {
+	if (game_state == "0") {
 
         timer.initializeTimer();
         timer.setLoopFrequency(1000);
@@ -227,13 +213,6 @@ int main() {
             // update model
             robot->updateModel();
             robot2->updateModel();
-
-            //shooter complete the shooting motion
-            N_prec2.setIdentity();
-            joint_task2->updateTaskModel(N_prec2);
-            joint_task2->computeTorques(joint_task_torques2);
-            command_torques2 = joint_task_torques2;
-            robot2->position(ee_pos_shooter, control_link2, control_point2);
 
             if (state == INITIALIZE) {
 
@@ -276,9 +255,19 @@ int main() {
             }
             else if (state == IDLE) {
 
+                //shooter complete the shooting motion
+                q_init_desired2 *= M_PI/180.0;
+	            joint_task2->_desired_position = q_init_desired2;
+                N_prec2.setIdentity();
+                joint_task2->updateTaskModel(N_prec2);
+                joint_task2->computeTorques(joint_task_torques2);
+                command_torques2 = joint_task_torques2;
+                robot2->position(ee_pos_shooter, control_link2, control_point2);
+
+                // setting idle position for hoop
                 x_desired(0) = 0;
                 x_desired(1) = 0;
-                x_desired(2) = 0.9;
+                x_desired(2) = 1.1;
                 base_pose_init_desired(0) = 0;
                 base_pose_init_desired(1) = 0;
                 x_desired(0) += base_pose_init_desired(0); //ee_x
@@ -316,8 +305,29 @@ int main() {
             }
             else if (state == HOOP_MOVE) {
 
-                x_desired(0) = -2;
-                x_desired(1) = -4;
+                // shooter back to initial position
+                if (mode == "straight") {
+                    q_init_desired2 << 0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+                    }
+
+                    else if (mode == "low_arc") {
+                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 20.0, 0.0;
+                    }
+
+                    else if (mode == "high_arc") {
+                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 30.0, 0.0;
+	            } // three shooting modes
+                q_init_desired2 *= M_PI/180.0;
+	            joint_task2->_desired_position = q_init_desired2;
+                N_prec2.setIdentity();
+                joint_task2->updateTaskModel(N_prec2);
+                joint_task2->computeTorques(joint_task_torques2);
+                command_torques2 = joint_task_torques2;
+                robot2->position(ee_pos_shooter, control_link2, control_point2);
+
+                // setting desired position for hoop
+                x_desired(0) = 2;
+                x_desired(1) = -3;
                 x_desired(2) = 1;
                 base_pose_init_desired(0) = x_desired(0);
                 base_pose_init_desired(1) = x_desired(1);
