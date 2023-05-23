@@ -152,12 +152,6 @@ int main() {
 	joint_task2->_kp = 400.0;
 	joint_task2->_kv = 40.0;
 
-
-	std::string mode;
-	//mode = redis_client.get(SHOOTER_MODE);
-	VectorXd q_init_desired2(dof2); //initial joint space for kuka
-	mode = "high_arc";  // need to revise to catch key from interface
-
 	// containers
 	Matrix3d ee_rot;
 	Vector3d ee_pos_shooter;
@@ -189,7 +183,7 @@ int main() {
 	runloop = false; // timer in waiting state
 	unsigned long long counter = 0;
 
-	if (game_state == "0") {
+	if (game_state == "1") {
 
         timer.initializeTimer();
         timer.setLoopFrequency(1000);
@@ -197,11 +191,27 @@ int main() {
         fTimerDidSleep = true;
         runloop = true;
 
+        std::string pre_mode;
+        pre_mode = "";
+
         while (runloop) {
 
             // wait for next scheduled loop
             timer.waitForNextLoop();
             double time = timer.elapsedTime() - start_time;
+
+            // get shooter mode from redis
+            std::string mode;
+            mode = redis_client.get(SHOOTER_MODE);
+            if (mode != pre_mode) {
+             cout << mode << endl;  //cout the mode only once
+             pre_mode = mode;
+             }
+            VectorXd q_init_desired2(dof2); //initial joint space for kuka
+            // get shooting angle from redis
+            std::string shooting_angle;
+            shooting_angle = redis_client.get(SHOOTING_ANGLE);
+            int angle = stof(shooting_angle); //transfer to integer
 
             //read robot state from redis
             robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
@@ -215,6 +225,9 @@ int main() {
             robot2->updateModel();
 
             if (state == INITIALIZE) {
+
+                //initialize timer before each task
+                 timer.initializeTimer();
 
                 // set controller inputs
                 x_init_desired(0) = 0;
@@ -256,6 +269,18 @@ int main() {
             else if (state == IDLE) {
 
                 //shooter complete the shooting motion
+                if (mode == "straight") {
+                    q_init_desired2 << 0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+                    }
+
+                else if (mode == "low_arc") {
+                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 20.0, 0.0;
+                    }
+
+                else if (mode == "high_arc") {
+                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 70.0, 0.0;
+	            } // three shooting modes
+	            q_init_desired2(0) = angle; //getting the shooting angle
                 q_init_desired2 *= M_PI/180.0;
 	            joint_task2->_desired_position = q_init_desired2;
                 N_prec2.setIdentity();
@@ -293,7 +318,7 @@ int main() {
                 command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
                 robot->position(ee_pos, control_link, control_point);
 
-                if ( (ee_pos - x_desired).norm() < 0.015) {
+                if ( (ee_pos - x_desired).norm() < 0.015 && time > 2) {
                     cout << "Ready for Next Mission" << endl;
                     base_task->reInitializeTask();
                     arm_joint_task->reInitializeTask();
@@ -306,17 +331,8 @@ int main() {
             else if (state == HOOP_MOVE) {
 
                 // shooter back to initial position
-                if (mode == "straight") {
-                    q_init_desired2 << 0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
-                    }
-
-                    else if (mode == "low_arc") {
-                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 20.0, 0.0;
-                    }
-
-                    else if (mode == "high_arc") {
-                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 30.0, 0.0;
-	            } // three shooting modes
+                q_init_desired2 *= 0;
+                q_init_desired2(0) = angle;
                 q_init_desired2 *= M_PI/180.0;
 	            joint_task2->_desired_position = q_init_desired2;
                 N_prec2.setIdentity();
