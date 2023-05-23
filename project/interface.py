@@ -73,19 +73,19 @@ def button_function():
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
     print(r.get(GAME_STATE).decode())
 
-    # simviz_process = subprocess.Popen(["./simviz"])
+    simviz_process = subprocess.Popen(["./simviz"])
     # simviz_pid = simviz_process.pid
-    # # print("Simulation launched with PID:", simviz_pid)
-    #
-    # # Function to handle Ctrl+C interruption
-    # def ctrl_c(signal, frame):
-    #     simviz_process.terminate()
-    #     simviz_process.wait()
-    #     print("Simulation terminated")
-    #     exit(0)
-    #
-    # # Set the signal handler
-    # signal.signal(signal.SIGINT, ctrl_c)
+    # print("Simulation launched with PID:", simviz_pid)
+
+    # Function to handle Ctrl+C interruption
+    def ctrl_c(signal, frame):
+        simviz_process.terminate()
+        simviz_process.wait()
+        print("Simulation terminated")
+        exit(0)
+
+    # Set the signal handler
+    signal.signal(signal.SIGINT, ctrl_c)
 
 
 def check_redis_keys(keys, app):
