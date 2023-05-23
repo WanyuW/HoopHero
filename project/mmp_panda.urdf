@@ -189,6 +189,12 @@
         <mesh filename="../../../model/panda/meshes/visual/board.obj" scale = "0.6 0.6 0.6"/>
       </geometry>
     </visual>
+    <collision>
+        <origin xyz="0 0 0.1" rpy="-1.57079632679 3.1415926 1.57079632679" />
+      <geometry>
+        <mesh filename="../../../model/panda/meshes/visual/board.obj" scale = "0.6 0.6 0.6"/>
+      </geometry>
+    </collision>
     
     <visual>
         <origin xyz="0.05 0.013 0.13" rpy="-1.57 0 1.57" />

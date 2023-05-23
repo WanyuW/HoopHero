@@ -263,7 +263,8 @@ int main() {
                     posori_task->reInitializeTask();
                     robot->position(ee_pos, control_link, control_point);
                     redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                    state = IDLE;
+//                    state = IDLE;
+                    controller_status = "0";
                 }
             }
             else if (state == IDLE) {
@@ -342,8 +343,8 @@ int main() {
                 robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                 // setting desired position for hoop
-                x_desired(0) = 2;
-                x_desired(1) = -3;
+                x_desired(0) = 1;
+                x_desired(1) = -1;
                 x_desired(2) = 1;
                 base_pose_init_desired(0) = x_desired(0);
                 base_pose_init_desired(1) = x_desired(1);
