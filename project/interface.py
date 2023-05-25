@@ -40,7 +40,8 @@ KEYS = {
     BALL_VEL: "",
 
     # launch
-    GAME_STATE: ""
+    GAME_STATE: "",
+    RESET_KEY: ""
 }
 
 # global variable
@@ -67,6 +68,9 @@ angle_text = None
 shooting_angle_input = ""
 launch_button = None
 launch_process = None
+reset_button = None
+shoot_button = None
+counter = 0
 
 
 def button_function():
@@ -93,7 +97,7 @@ def button_function():
     signal.signal(signal.SIGINT, ctrl_c)
 
 
-def check_redis_keys(keys, app):
+def check_redis_keys(keys, app, counter):
     # Retrieve the updated Redis keys using appropriate Redis commands
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
@@ -119,13 +123,18 @@ def check_redis_keys(keys, app):
                                           font=('Berlin Sans FB Demi', 35), fill="gray84")
     angle_canvas.update()
 
-    if (KEYS[CONTROLLER_RUNNING_KEY] == "0"):
-        print(r.get(CONTROLLER_RUNNING_KEY).decode())
-        if launch_process is not None:
-            launch_process.terminate()
+    # counter += 1
+    # if counter % 120 == 0:
+    #     r.set(RESET_KEY, "1")
+    #     print(counter, r.get(RESET_KEY).decode())
+
+    # if KEYS[CONTROLLER_RUNNING_KEY] == "0":
+    #     print(r.get(CONTROLLER_RUNNING_KEY).decode())
+    #     if launch_process is not None:
+    #         launch_process.terminate()
 
     # Schedule the next Redis key retrieval after a certain interval
-    app.after(10, check_redis_keys, keys, app)  # Adjust the interval as needed
+    app.after(10, check_redis_keys, keys, app, counter)  # Adjust the interval as needed
 
 
 def on_keydown(event):
@@ -227,7 +236,7 @@ def launch_function():
 
     # launch_button.place_forget()  # remove launch button
     #
-    # reset_button.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
+    # # reset_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
     # shoot_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
 
@@ -281,6 +290,7 @@ def reset_function():
 
 def shoot_function():
     r.set(CONTROLLER_RUNNING_KEY, "1")
+    print(r.get(CONTROLLER_RUNNING_KEY).decode())
 
 
 def main():
@@ -298,12 +308,14 @@ def main():
     global launch_button
     global reset_button
     global shoot_button
+    global counter
 
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
     r.set(SHOOTER_MODE, "straight")
     r.set(SHOOTING_ANGLE, "0")
     r.set(GRAVITY_KEY, str([0.0, 0.0, -9.81]))
+    r.set(RESET_KEY, "0")
 
     # interface template
     ctk.set_appearance_mode("dark")  # Modes: system (default), light, dark
@@ -413,14 +425,14 @@ def main():
     reset_button_title = "Reset"
     reset_button = ctk.CTkButton(master=preview_frame, text=reset_button_title, command=reset_function,
                                   font=('Berlin Sans FB Demi', 50), border_spacing=10, fg_color="#414141",
-                                  hover_color="#2f2f2f")
-    shoot_button_title = "Launch"
+                                  hover_color="#2f2f2f", width=100)
+    shoot_button_title = "Shoot"
     shoot_button = ctk.CTkButton(master=preview_frame, text=shoot_button_title, command=shoot_function,
                                  font=('Berlin Sans FB Demi', 50), border_spacing=10, fg_color="#414141",
-                                 hover_color="#2f2f2f")
+                                 hover_color="#2f2f2f", width=100)
 
     # Start the Redis key retrieval loop
-    check_redis_keys(KEYS, app)
+    check_redis_keys(KEYS, app, counter)
 
     app.bind('<KeyPress>', on_keydown)
     app.bind('<KeyRelease>', on_keyup)
