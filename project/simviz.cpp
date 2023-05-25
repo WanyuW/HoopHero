@@ -472,7 +472,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
                 // reset object information
                 for (int i = 0; i < n_objects; ++i) {
                     // Reset the dynamic object to the desired position and orientation
-                    Vector3d _object_pos(0.0, -1.9, 1.2);
+                    Vector3d _object_pos(0.0, -2.3, 2.2);
                     Quaterniond _object_ori(1, 0, 0, 0);
                     Vector3d _object_lin_vel(0.0, 0.0, 0.0);
                     Vector3d _object_ang_vel(0.0, 0.0, 0.0);
