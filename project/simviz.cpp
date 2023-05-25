@@ -75,7 +75,7 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods);
 Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_duration, double curr_time, Simulation::Sai2Simulation* sim);
 
 // set dynamic object velocity
-void setObjectVelocity(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
+void setObjectVel(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
 Simulation::Sai2Simulation* sim);
 
 // flags for scene camera movement
@@ -180,7 +180,7 @@ int main() {
 	double last_cursorx, last_cursory;
 
 	// init redis client values 
-	redis_client.set(CONTROLLER_RUNNING_KEY, "0");  
+	redis_client.set(CONTROLLER_RUNNING_KEY, "0");
 	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q); 
 	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
     redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
@@ -215,43 +215,34 @@ int main() {
             Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
             cout << "gravity: " << "\t" << gra_g.transpose() << endl;
 
-            // fill in object information
-            for (int i = 0; i < n_objects; ++i) {
-                // Reset the dynamic object to the desired position and orientation
-                Vector3d _object_pos(0.0, -1.9, 1.2);
-                Quaterniond _object_ori(1, 0, 0, 0);
-                Vector3d _object_lin_vel(0.0, 0.0, 0.0);
-                Vector3d _object_ang_vel(0.0, 0.0, 0.0);
+//            cout << "reset: " << "\t" << redis_client.get(RESET_KEY) << endl;
 
-                sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
-                setObjectVelocity(object_names[i], _object_lin_vel, _object_ang_vel, sim);
-
-                object_pos.clear();
-                object_pos.push_back(_object_pos);
-                object_ori.clear();
-                object_lin_vel.push_back(_object_lin_vel);
-                object_lin_vel.clear();
-                object_ori.push_back(_object_ori);
-                object_ang_vel.clear();
-                object_ang_vel.push_back(_object_ang_vel);
-
-                sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
-			    sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-
-                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
-                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
-//                object_ang_vel.push_back(_object_ang_vel);
-
-//                // Set the object information in the corresponding vectors
+//            // reset object information
+//            for (int i = 0; i < n_objects; ++i) {
+//                // Reset the dynamic object to the desired position and orientation
+//                Vector3d _object_pos(0.0, -1.9, 1.2);
+//                Quaterniond _object_ori(1, 0, 0, 0);
+//                Vector3d _object_lin_vel(0.0, 0.0, 0.0);
+//                Vector3d _object_ang_vel(0.0, 0.0, 0.0);
+//
+//                sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
+//                setObjectVelocity(object_names[i], _object_lin_vel, _object_ang_vel, sim);
+//
 //                object_pos.clear();
 //                object_pos.push_back(_object_pos);
 //                object_ori.clear();
-//                object_ori.push_back(_object_ori);
-//                object_lin_vel.clear();
 //                object_lin_vel.push_back(_object_lin_vel);
+//                object_lin_vel.clear();
+//                object_ori.push_back(_object_ori);
 //                object_ang_vel.clear();
 //                object_ang_vel.push_back(_object_ang_vel);
-            }
+//
+//                sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
+//			    sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
+//
+//                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
+//                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
+//            }
 		}
 
 		// update graphics. this automatically waits for the correct amount of time
@@ -394,6 +385,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 	double last_time = start_time;
 	double pred_start_time;
 	int sim_pred_counter = 0;
+	int reset_counter = 0;
 
 	// start simulation 
 	fSimulationRunning = true;	
@@ -407,6 +399,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 		// chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
         // Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
 		sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
+//		cout << "gravity:" << "\t" << graVec.transpose() << endl;
 
 		// apply gravity compensation 
 		robot->gravityVector(g);
@@ -422,6 +415,38 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
             sim->setJointTorques(robot2_name, g2 - robot2->_M * (kv * robot2->_dq));
 		}
 
+//		if (reset_counter % 5000 == 0) {
+//		    // reset object information
+//            for (int i = 0; i < n_objects; ++i) {
+//                // Reset the dynamic object to the desired position and orientation
+//                Vector3d _object_pos(0.0, -1.9, 1.2);
+//                Quaterniond _object_ori(1, 0, 0, 0);
+//                Vector3d _object_lin_vel(0.0, 0.0, 0.0);
+//                Vector3d _object_ang_vel(0.0, 0.0, 0.0);
+//
+//                sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
+//                setObjectVel(object_names[i], _object_lin_vel, _object_ang_vel, sim);
+//
+//                object_pos.clear();
+//                object_pos.push_back(_object_pos);
+//                object_ori.clear();
+//                object_lin_vel.push_back(_object_lin_vel);
+//                object_lin_vel.clear();
+//                object_ori.push_back(_object_ori);
+//                object_ang_vel.clear();
+//                object_ang_vel.push_back(_object_ang_vel);
+//
+//                sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
+//			    sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
+//
+////                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
+////                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
+//            }
+//
+//            sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
+////		    cout << "gravity:" << "\t" << graVec.transpose() << endl;
+//
+//		}
 
 		// integrate forward
 		double curr_time = timer.elapsedTime();
@@ -443,13 +468,51 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 		for (int i = 0; i < n_objects; ++i) {
 			sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
 			sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
+			if (reset_counter % 5000 == 0) {
+                // reset object information
+                for (int i = 0; i < n_objects; ++i) {
+                    // Reset the dynamic object to the desired position and orientation
+                    Vector3d _object_pos(0.0, -1.9, 1.2);
+                    Quaterniond _object_ori(1, 0, 0, 0);
+                    Vector3d _object_lin_vel(0.0, 0.0, 0.0);
+                    Vector3d _object_ang_vel(0.0, 0.0, 0.0);
+
+                    sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
+                    setObjectVel(object_names[i], _object_lin_vel, _object_ang_vel, sim);
+
+                    object_pos.clear();
+                    object_pos.push_back(_object_pos);
+                    object_ori.clear();
+                    object_lin_vel.push_back(_object_lin_vel);
+                    object_lin_vel.clear();
+                    object_ori.push_back(_object_ori);
+                    object_ang_vel.clear();
+                    object_ang_vel.push_back(_object_ang_vel);
+
+                    sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
+                    sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
+
+    //                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
+    //                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
+                }
+                pred_start_time = curr_time;
+                sim->integrate(loop_dt);
+            }
+
+            sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
+//		    cout << "gravity:" << "\t" << graVec.transpose() << endl;
+
 		}
+//			if (reset_counter % 5000 == 0) {
+//                cout << "now linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
+//                cout << "now position: " << "\t" << object_pos[i].transpose() << endl;
+//			}
 
         // calculate future pos
-        if (flag == 0 && curr_time >= 1.59 && curr_time <= 1.6) {
+        if (flag == 0 && curr_time - pred_start_time >= 1.59 && curr_time - pred_start_time <= 1.6) {
             double time_duration = 0.1;
             object_future_pos = posPrediction(object_pos[0], object_lin_vel[0], time_duration, curr_time, sim);
-            pred_start_time = curr_time;
+//            pred_start_time = curr_time;
         }
 
         if (flag == 1) {
@@ -457,6 +520,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
             if (sim_pred_counter == 100) {
                 cout << curr_time << '\t' << object_pos[0].transpose() << endl;
             }
+            flag = 0;
         }
 
 
@@ -465,6 +529,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 
 		// update last time
 		last_time = curr_time;
+		reset_counter++;
 	}
 
 	double end_time = timer.elapsedTime();
@@ -585,7 +650,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_dur
 
 
 // set object velocities
-void setObjectVelocity(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
+void setObjectVel(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
 Simulation::Sai2Simulation* sim) {
     auto object = sim->_world->getBaseNode(object_name);
     assert(object);
