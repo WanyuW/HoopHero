@@ -126,7 +126,7 @@ int main() {
 	vector<int> base_joint_selection{0, 1, 2};
 	auto base_task = new Sai2Primitives::PartialJointTask(robot, base_joint_selection);
 	base_task->_use_interpolation_flag = false;  // turn off if trajectory following; else turn on
-	base_task->_use_velocity_saturation_flag = false;
+	base_task->_use_velocity_saturation_flag = true;
 	base_task->_saturation_velocity << 0.3, 0.3, 0.2;  // adjust based on speed
 
 	VectorXd base_task_torques = VectorXd::Zero(dof);
