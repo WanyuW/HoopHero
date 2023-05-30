@@ -29,9 +29,6 @@
 	        </geometry>
 	    </collision>
 	</static_object>
-<<<<<<< HEAD
-
-=======
     
     <static_object name="ball_top">
         <origin xyz="0.0 -2.3 3.3" rpy="0.0 0.0 0.0" />
@@ -56,7 +53,7 @@
         </collision>
     </static_object>
 	
->>>>>>> 5016e16ec99ca79efa2015ee3cef01eadf83efd2
+    
 	<static_object name="Sky">
 	    <visual>
 	        <origin xyz="0.0 0.0 -3.0" rpy="0.0 0.0 -1.57" />
