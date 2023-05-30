@@ -34,6 +34,7 @@ KEYS = {
     SHOOTER_POWER: "",
     SHOOTER_MODE: "",
     SHOOTING_ANGLE: "",
+    SHOOTER_EE_POS_INWORLD: "",
 
     # ball's info
     BALL_POS: "",
@@ -315,7 +316,7 @@ def main():
     r.set(SHOOTER_MODE, "straight")
     r.set(SHOOTING_ANGLE, "0")
     r.set(GRAVITY_KEY, str([0.0, 0.0, -9.81]))
-    r.set(RESET_KEY, "0")
+    # r.set(RESET_KEY, "0")
 
     # interface template
     ctk.set_appearance_mode("dark")  # Modes: system (default), light, dark

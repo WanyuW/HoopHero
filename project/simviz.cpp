@@ -54,7 +54,8 @@ Vector3d curr_ang_vel;
 int flag = 0;
 
 // redis client 
-RedisClient redis_client; 
+RedisClient redis_client;
+RedisClient redis_client_test;
 
 // simulation thread
 void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simulation::Sai2Simulation* sim);
@@ -94,6 +95,9 @@ int main() {
 	// start redis client
 	redis_client = RedisClient();
 	redis_client.connect();
+
+	redis_client_test = RedisClient();
+	redis_client_test.connect();
 
 	// set up signal handler
 	signal(SIGABRT, &sighandler);
@@ -214,36 +218,11 @@ int main() {
             // get world gravity
             chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
             Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-            cout << "gravity: " << "\t" << gra_g.transpose() << endl;
+//            cout << "gravity: " << gra_g.transpose() << "\n";
 
-            cout << "reset: " << "\t" << redis_client.get(RESET_KEY) << endl;
+//            auto test = redis_client_test.get(RESET_KEY);
+//            cout << "reset: " << test << "\n";
 
-//            // reset object information
-//            for (int i = 0; i < n_objects; ++i) {
-//                // Reset the dynamic object to the desired position and orientation
-//                Vector3d _object_pos(0.0, -1.9, 1.2);
-//                Quaterniond _object_ori(1, 0, 0, 0);
-//                Vector3d _object_lin_vel(0.0, 0.0, 0.0);
-//                Vector3d _object_ang_vel(0.0, 0.0, 0.0);
-//
-//                sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
-//                setObjectVelocity(object_names[i], _object_lin_vel, _object_ang_vel, sim);
-//
-//                object_pos.clear();
-//                object_pos.push_back(_object_pos);
-//                object_ori.clear();
-//                object_lin_vel.push_back(_object_lin_vel);
-//                object_lin_vel.clear();
-//                object_ori.push_back(_object_ori);
-//                object_ang_vel.clear();
-//                object_ang_vel.push_back(_object_ang_vel);
-//
-//                sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
-//			    sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-//
-//                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
-//                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
-//            }
 		}
 
 		// update graphics. this automatically waits for the correct amount of time
@@ -358,6 +337,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
     Vector3d graVec = Vector3d::Zero(3);
 	string controller_status = "0";
 	double kv = 10;  // can be set to 0 if no damping is needed
+	Vector3d ee_pos_shooter_inworld;
+
+	//kuka ee_pos
+	const string control_link2 = "link6";
+	const Vector3d control_point2 = Vector3d(0, 0, 0.07);
 
 	// setup redis callback
 	redis_client.createReadCallback(0);
@@ -376,6 +360,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
     redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
     redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
 	redis_client.addEigenToWriteCallback(0, BALL_POS, object_pos[0]);
+	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS_INWORLD, ee_pos_shooter_inworld);
 
 	// create a timer
 	LoopTimer timer;
@@ -432,20 +417,20 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
         sim->getJointPositions(robot2_name, robot2->_q);
         sim->getJointVelocities(robot2_name, robot2->_dq);
         robot2->updateModel();
+        robot2->position(ee_pos_shooter_inworld, control_link2, control_point2);
+        ee_pos_shooter_inworld(1) = ee_pos_shooter_inworld(1) - 1.5;
 
 		// get dynamic object positions
 		for (int i = 0; i < n_objects; ++i) {
 			sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
 			sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-			if (reset_counter % 5000 == 0) {
-			    redis_client.set(RESET_KEY, "1");
-			    if (redis_client.get(RESET_KEY) == "1") {
+			if (redis_client_test.get(RESET_KEY) == "1") {
 
                 // reset object information
-                cout << redis_client.get(RESET_KEY) << endl;
+                cout << redis_client_test.get(RESET_KEY) << endl;
                 for (int i = 0; i < n_objects; ++i) {
                     // Reset the dynamic object to the desired position and orientation
-                    Vector3d _object_pos(0.0, -2.3, 2.2);
+                    Vector3d _object_pos(ee_pos_shooter_inworld(0), ee_pos_shooter_inworld(1), 3.2);
                     Quaterniond _object_ori(1, 0, 0, 0);
                     Vector3d _object_lin_vel(0.0, 0.0, 0.0);
                     Vector3d _object_ang_vel(0.0, 0.0, 0.0);
@@ -467,12 +452,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 
     //                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
     //                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
-                }
-                pred_start_time = curr_time;
-                sim->integrate(loop_dt);
-                redis_client.set(RESET_KEY, "0");
-                cout << redis_client.get(RESET_KEY) << endl;
-                }
+                    pred_start_time = curr_time;
+                    sim->integrate(loop_dt);
+                    redis_client_test.set(RESET_KEY, "0");
+//                    cout << redis_client_test.get(RESET_KEY) << endl;
+                 }
             }
 
             sim->_world->setGravity(graVec(0), graVec(1), graVec(2));

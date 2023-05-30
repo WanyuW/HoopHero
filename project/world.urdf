@@ -31,18 +31,24 @@
 	</static_object>
     
     <static_object name="ball_top">
-        <origin xyz="0.0 -2.3 2.3" rpy="0.0 0.0 0.0" />
+        <origin xyz="0.0 -2.3 3.3" rpy="0.0 0.0 0.0" />
         <visual>
             <origin xyz="0.0 0.0 200" rpy="0 0 0" />
             <geometry>
                 <box size="0.2 0.2 0.08" />
             </geometry>
         </visual>
+        <visual>
+            <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
+            <geometry>
+                <box size="2.0 2.0 0.08" />
+            </geometry>
+        </visual>
         
         <collision>
             <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
             <geometry>
-                <box size="0.2 0.2 0.08" />
+                <box size="2.0 2.0 0.08" />
             </geometry>
         </collision>
     </static_object>
