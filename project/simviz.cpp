@@ -12,9 +12,16 @@
 #include "redis/RedisClient.h"
 #include "timer/LoopTimer.h"
 #include <GLFW/glfw3.h>  // must be loaded after loading opengl/glew
+#include "uiforce/UIForceWidget.h"  // used for right-click drag interaction in window
+#include <random>  // used for white-noise generation
+#include "force_sensor/ForceSensorSim.h"  // references src folder in sai2-common directory
+#include "force_sensor/ForceSensorDisplay.h"
 #include <signal.h>
 #include <iostream>
 
+// flags for simulation and controller states
+//bool fSimulationLoopDone = false;
+//bool fControllerLoopDone = true; // initialize as true for first loop
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
 
@@ -33,6 +40,7 @@ const string robot2_name = "kuka_iiwa";    //urdf for the kuka_iiwa
 const string camera_name = "camera_fixed";
 const string base_link_name = "link0";
 const string ee_link_name = "link7";
+const string sensor_link_name = "link6";
 
 // basketball - please work
 const string obj_file = "./resources/ball.urdf";
@@ -48,15 +56,15 @@ vector<Vector3d> object_ang_vel;
 const int n_objects = object_names.size();
 
 // estimate future position for dynamic obj
-Vector3d object_future_pos;
-Vector3d object_future_lin_vel;
-Quaterniond object_future_ori;
-Vector3d object_future_ang_vel;
-Vector3d curr_pos;
-Vector3d curr_lin_vel;
-Quaterniond curr_ori;
-Vector3d curr_ang_vel;
-int flag = 0;
+//Vector3d object_future_pos;
+//Vector3d object_future_lin_vel;
+//Quaterniond object_future_ori;
+//Vector3d object_future_ang_vel;
+//Vector3d curr_pos;
+//Vector3d curr_lin_vel;
+//Quaterniond curr_ori;
+//Vector3d curr_ang_vel;
+//int flag = 0;
 
 // force sensor
 ForceSensorSim* force_sensor;
@@ -70,7 +78,7 @@ RedisClient redis_client_test;
 
 /* Edited functions from collision demo */
 // simulation thread
-void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget);
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget);
 
 /* added functions from collision demo */
 // function for converting string to bool
@@ -116,6 +124,7 @@ bool fTransZp = false;
 bool fTransZn = false;
 bool fRotPanTilt = false;
 bool fRobotLinkSelect = false;
+bool fshowCameraPose = false;
 
 int main() {
 	cout << "Loading URDF world model file: " << world_file << endl;
@@ -142,7 +151,7 @@ int main() {
 
 	// load robots
 	/* added from collision demo */
-    Eigen::Vector3d robot_offset = Eigen::Vector3d(0.0, 0.3, 0.0);
+    Eigen::Vector3d robot_offset = Eigen::Vector3d(0.0, 0.0, 0.0);
     Eigen::Matrix3d R_world_robot = Eigen::Matrix3d::Identity();
     // Eigen::Matrix3d R_world_robot = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ())
     //                                 * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
@@ -160,7 +169,7 @@ int main() {
     
     // load second robot
     /* added from collision demo */
-    Eigen::Vector3d robot2_offset = Eigen::Vector3d(0.0, 0.3, 0.0);
+    Eigen::Vector3d robot2_offset = Eigen::Vector3d(0.0, 0.0, 0.0);
     Eigen::Matrix3d R_world_robot2 = Eigen::Matrix3d::Identity();
     // Eigen::Matrix3d R_world_robot2 = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ())
     //                                 * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
@@ -175,7 +184,7 @@ int main() {
 
     /* added from collision demo */
     // load robot objects
-    Eigen::Vector3d object_offset = Eigen::Vector3d(0.0, -0.35, 0.593);
+    Eigen::Vector3d object_offset = Eigen::Vector3d(0.0, 0.0, 0.0);
     Eigen::Matrix3d R_world_object = Eigen::Matrix3d::Identity();
     // Eigen::Matrix3d R_world_object = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX())
     //                                  * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
@@ -215,11 +224,11 @@ int main() {
     sim->setCollisionRestitution(0.0);
 
     // set co-efficient of friction - this causes jitter
-    sim->setCoeffFrictionStatic(0.5);
-    sim->setCoeffFrictionDynamic(0.5);
+    sim->setCoeffFrictionStatic(0.0);
+    sim->setCoeffFrictionDynamic(0.0);
 
     // initialize force sensor: needs Sai2Simulation sim interface type
-    force_sensor = new ForceSensorSim(robot_name, ee_link_name, Eigen::Affine3d::Identity(), robot);
+    force_sensor = new ForceSensorSim(robot2_name, sensor_link_name, Eigen::Affine3d::Identity(), robot2);
     force_display = new ForceSensorDisplay(force_sensor, graphics);
 
 	/*------- Set up visualization -------*/
@@ -236,8 +245,8 @@ int main() {
 	// information about computer screen and GLUT display window
 	int screenW = mode->width;
 	int screenH = mode->height;
-	int windowW = 1.4 * screenH;
-	int windowH = 0.8 * screenH;
+	int windowW = 0.8 * screenH;
+	int windowH = 0.6 * screenH;
 	int windowPosY = (screenH - windowH) / 2;
 	int windowPosX = windowPosY;
 
@@ -255,7 +264,7 @@ int main() {
 
 	/* added from collision demo */
 	// init click force widget
-    auto ui_force_widget = new UIForceWidget(robot_name, robot, graphics);
+    auto ui_force_widget = new UIForceWidget(robot2_name, robot2, graphics);
     ui_force_widget->setEnable(false);
 
 	// cache variables
@@ -270,8 +279,8 @@ int main() {
     redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
     redis_client.setEigenMatrixJSON(OBJ_JOINT_ANGLES_KEY, object->_q);
     redis_client.setEigenMatrixJSON(OBJ_JOINT_VELOCITIES_KEY, object->_dq);
-    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
+//    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+//    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
 	// start simulation thread
 	thread sim_thread(simulation, robot, robot2, object, sim, ui_force_widget);
@@ -426,8 +435,8 @@ int main() {
 
 	// wait for simulation to finish
 	fSimulationRunning = false;
-	fSimulationLoopDone = false;
-	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+//	fSimulationLoopDone = false;
+//	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 	sim_thread.join();
 
 	// destroy context
@@ -441,7 +450,7 @@ int main() {
 
 //------------------------------------------------------------------------------
 
-void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget)
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget)
 {
 	// prepare simulation
 	int dof = robot->dof();
@@ -459,7 +468,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 	Vector3d ee_pos_shooter_inworld;
 	Eigen::Vector3d ui_force;
     ui_force.setZero();
-    Eigen::VectorXd ui_force_command_torques;
+    Eigen::VectorXd ui_force_command_torques(dof2);
     ui_force_command_torques.setZero();
 
     // sensed forces and moments from sensor
@@ -467,7 +476,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
     Eigen::Vector3d sensed_moment;
 
     // velocity damping for ui force drag
-    double kvj = 10;
+    double kvj = 4000;
 
     // init camera detection variables
     Vector3d camera_pos, obj_pos;
@@ -477,7 +486,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
     const std::string false_message = "Not Detected";
 
     // setup redis client data container for pipeset (batch write) TODO: change the batch size
-    std::vector<std::pair<std::string, std::string>> redis_data(10);  // set with the number of keys to write
+    // std::vector<std::pair<std::string, std::string>> redis_data(10);  // set with the number of keys to write
 
     // setup white noise generator
     const double mean = 0.0;
@@ -507,14 +516,14 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 	redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
     redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
     redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
-	redis_client.addEigenToWriteCallback(0, BALL_POS, object_pos[0]);
-	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS_INWORLD, ee_pos_shooter_inworld);
+//	redis_client.addEigenToWriteCallback(0, BALL_POS, object_pos[0]);
+//	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS_INWORLD, ee_pos_shooter_inworld);
 
 	// create a timer
 	LoopTimer timer;
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000);
-	double time_slowdown_factor = 1.0;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
+	double time_slowdown_factor = 3.0;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
 	bool fTimerDidSleep = true;
 	double start_time = timer.elapsedTime() / time_slowdown_factor; // secs
 	double last_time = start_time;
@@ -538,7 +547,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 		sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
 //		cout << "gravity:" << "\t" << graVec.transpose() << endl;
 
-        if ((fControllerLoopDone && controller_status == "1") || fRobotLinkSelect) {
+        if (true) {
             // run simulation loop when (1) control loop is done or (2) there is user force input
             // apply gravity compensation
             robot->gravityVector(g);
@@ -546,7 +555,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             robot2->gravityVector(g2);
 
             // read arm torques from redis and apply to simulated robot
-            if (fControllerLoopDone && controller_status == "1") {
+            if (controller_status == "1") {
                 command_torques = redis_client.getEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY);
                 command_torques2 = redis_client.getEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY_SHOOTER);
             }
@@ -559,10 +568,13 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             ui_force_widget->getUIForce(ui_force);
             ui_force_widget->getUIJointTorques(ui_force_command_torques);
 
-            if (fRobotLinkSelect)
-                sim->setJointTorques(robot_name2, command_torques + ui_force_command_torques - robot->_M*kvj*robot->_dq + g);
+            sim->setJointTorques(robot_name, command_torques + g);
+
+            if (fRobotLinkSelect) {
+                sim->setJointTorques(robot2_name, command_torques2 + ui_force_command_torques - robot2->_M * kvj * robot2->_dq + g2);
+                }
             else
-                sim->setJointTorques(robot_name2, command_torques + g);
+                sim->setJointTorques(robot2_name, command_torques2 + g2);
 
             // integrate forward
             double curr_time = timer.elapsedTime() / time_slowdown_factor;
@@ -630,30 +642,27 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
     //		    cout << "gravity:" << "\t" << graVec.transpose() << endl;
 
             }
-    //			if (reset_counter % 5000 == 0) {
-    //                cout << "now linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
-    //                cout << "now position: " << "\t" << object_pos[i].transpose() << endl;
-    //			}
+
             // update force sensor readings
             force_sensor->update(sim);
             force_sensor->getForceLocalFrame(sensed_force);  // refer to ForceSensorSim.h in sai2-common/src/force_sensor (can also get wrt global frame)
             force_sensor->getMomentLocalFrame(sensed_moment);
-            // std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
+            std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
 
             // calculate future pos
-            if (flag == 0 && curr_time - pred_start_time >= 1.59 && curr_time - pred_start_time <= 1.6) {
-                double time_duration = 0.1;
-                object_future_pos = posPrediction(object_pos[0], object_lin_vel[0], time_duration, curr_time, sim);
-    //            pred_start_time = curr_time;
-            }
+//            if (flag == 0 && curr_time - pred_start_time >= 1.59 && curr_time - pred_start_time <= 1.6) {
+//                double time_duration = 0.1;
+//                object_future_pos = posPrediction(object_pos[0], object_lin_vel[0], time_duration, curr_time, sim);
+//    //            pred_start_time = curr_time;
+//            }
 
-            if (flag == 1) {
-                sim_pred_counter++;
-                if (sim_pred_counter == 100) {
-                    cout << curr_time << '\t' << object_pos[0].transpose() << endl;
-                }
-                flag = 0;
-            }
+//            if (flag == 1) {
+//                sim_pred_counter++;
+//                if (sim_pred_counter == 100) {
+//                    cout << curr_time << '\t' << object_pos[0].transpose() << endl;
+//                }
+//                flag = 0;
+//            }
 
             // query object position and ee pos/ori for camera detection
             object->positionInWorld(obj_pos, "link6");
@@ -661,37 +670,35 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             robot->rotationInWorld(camera_ori, "link7");  // local to world frame
 
             // object camera detect
-            detect = cameraFOV(obj_pos, camera_pos, camera_ori, 1.0, M_PI/6);
-            if (detect == true) {
-                obj_pos(0) += dist(generator);  // add white noise
-                obj_pos(1) += dist(generator);
-                obj_pos(2) += dist(generator);
-                redis_data.at(0) = std::pair<string, string>(CAMERA_DETECT_KEY, true_message);
-                redis_data.at(1) = std::pair<string, string>(CAMERA_OBJ_POS_KEY, redis_client.encodeEigenMatrixJSON(obj_pos));
-            }
-            else {
-                redis_data.at(0) = std::pair<string, string>(CAMERA_DETECT_KEY, false_message);
-                redis_data.at(1) = std::pair<string, string>(CAMERA_OBJ_POS_KEY, redis_client.encodeEigenMatrixJSON(Vector3d::Zero()));
-            }
+//            detect = cameraFOV(obj_pos, camera_pos, camera_ori, 1.0, M_PI/6);
+//            if (detect == true) {
+//                obj_pos(0) += dist(generator);  // add white noise
+//                obj_pos(1) += dist(generator);
+//                obj_pos(2) += dist(generator);
+//                redis_client.set(CAMERA_DETECT_KEY, true_message);
+//                redis_client.setEigenMatrixJSON(CAMERA_OBJ_POS_KEY, obj_pos);
+//            }
+//            else {
+//                redis_client.set(CAMERA_DETECT_KEY, false_message);
+//                redis_client.setEigenMatrixJSON(CAMERA_OBJ_POS_KEY, Vector3d::Zero());
+//            }
 
             // simulation loop is done
-            fSimulationLoopDone = true;
+//            fSimulationLoopDone = true;
 
             // ask for next control loop
-            fControllerLoopDone = false;
+//            fControllerLoopDone = false;
 
             // publish all redis keys at once to reduce multiple redis calls that slow down simulation
             // shown explicitly here, but you can define a helper function to publish data
-            redis_data.at(2) = std::pair<string, string>(OBJ_JOINT_ANGLES_KEY, redis_client.encodeEigenMatrixJSON(object->_q));
-            redis_data.at(3) = std::pair<string, string>(OBJ_JOINT_VELOCITIES_KEY, redis_client.encodeEigenMatrixJSON(object->_dq));
-            redis_data.at(4) = std::pair<string, string>(CAMERA_POS_KEY, redis_client.encodeEigenMatrixJSON(camera_pos));
-            redis_data.at(5) = std::pair<string, string>(CAMERA_ORI_KEY, redis_client.encodeEigenMatrixJSON(camera_ori));
-            redis_data.at(6) = std::pair<string, string>(EE_FORCE_KEY, redis_client.encodeEigenMatrixJSON(sensed_force));
-            redis_data.at(7) = std::pair<string, string>(EE_MOMENT_KEY, redis_client.encodeEigenMatrixJSON(sensed_moment));
-            redis_data.at(8) = std::pair<string, string>(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-            redis_data.at(9) = std::pair<string, string>(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone)); // ask for next control loop
-
-            redis_client.pipeset(redis_data);
+            redis_client.setEigenMatrixJSON(OBJ_JOINT_ANGLES_KEY, object->_q);
+            redis_client.setEigenMatrixJSON(OBJ_JOINT_VELOCITIES_KEY, object->_dq);
+            redis_client.setEigenMatrixJSON(CAMERA_POS_KEY, camera_pos);
+            redis_client.setEigenMatrixJSON(CAMERA_ORI_KEY, camera_ori);
+            redis_client.setEigenMatrixJSON(EE_FORCE_KEY, sensed_force);
+            redis_client.setEigenMatrixJSON(EE_MOMENT_KEY, sensed_moment);
+//            redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+//            redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone)); // ask for next control loop
 
             // execute redis write callback
             redis_client.executeWriteCallback(0);
@@ -703,7 +710,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 		}
 
 		// read controller state
-        fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
+//        fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
 	}
 
 	double end_time = timer.elapsedTime() / time_slowdown_factor;
@@ -795,9 +802,6 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 			break;
 		// if middle click: don't handle. doesn't work well on laptops
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-		    // exit application
-            fSimulationRunning = false;
-            glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
 		default:
 			break;
@@ -820,7 +824,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_dur
     cout << curr_time << '\t' << curr_pos.transpose() << endl;
     cout << "future position" << endl;
     cout << curr_time + time_duration << '\t' << object_future_pos.transpose() << endl;
-    flag = 1;
+//    flag = 1;
     redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
     return object_future_pos;
 }

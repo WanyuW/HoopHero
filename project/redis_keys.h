@@ -10,8 +10,8 @@ const std::string JOINT_TORQUES_COMMANDED_KEY = "sai2::sim::panda::actuators::fg
 const std::string CONTROLLER_RUNNING_KEY = "sai2::sim::panda::controller";
 
 // collision keys
-const std::string OBJ_JOINT_ANGLES_KEY  = "cs225a::object::cup::sensors::q";
-const std::string OBJ_JOINT_VELOCITIES_KEY = "cs225a::object::cup::sensors::dq";
+const std::string OBJ_JOINT_ANGLES_KEY  = "cs225a::object::ball::sensors::q";
+const std::string OBJ_JOINT_VELOCITIES_KEY = "cs225a::object::ball::sensors::dq";
 
 // camera keys
 const std::string CAMERA_POS_KEY = "cs225a::camera::pos";
@@ -42,5 +42,8 @@ const std::string SHOOTING_ANGLE = "sai2::shooter::shooting_angle";
 const std::string GRAVITY_KEY = "sai2::sim::world_gravity";
 const std::string RESET_KEY = "sai2::sim::reset";
 const std::string SHOOTER_EE_POS_INWORLD = "sai2::shooter::ee_pos_inworld";
+
+const std::string EE_FORCE_KEY = "cs225a::sensor::force";
+const std::string EE_MOMENT_KEY = "cs225a::sensor::moment";
 
 
