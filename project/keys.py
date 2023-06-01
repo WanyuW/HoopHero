@@ -25,3 +25,4 @@ FUTURE_POS = "sai2::sim::basketball_future_pos"
 # launch
 GAME_STATE = "sai2::game_state"
 RESET_KEY = "sai2::sim::reset"
+RUN_KEY = "sim::run"

@@ -195,8 +195,7 @@ int main() {
     T_world_object.linear() = R_world_object;
 
     auto object = new Sai2Model::Sai2Model(obj_file, false, T_world_object);
-    // object->_q(0) = 0.60;
-    // object->_q(1) = -0.35;
+    object->_q(1) = 2.5;
     object->updateModel();
 
 	// load simulation world
@@ -221,7 +220,7 @@ int main() {
 	}
 
     // set co-efficient of restition to zero for force control
-    sim->setCollisionRestitution(0.0);
+    sim->setCollisionRestitution(0.2);
 
     // set co-efficient of friction - this causes jitter
     sim->setCoeffFrictionStatic(0.0);

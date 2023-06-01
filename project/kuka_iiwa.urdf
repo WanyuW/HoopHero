@@ -174,13 +174,13 @@
         <visual>
             <origin xyz="0.0 0 0.2" rpy="0 2.05 3.1415926" />
             <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/torus.obj" scale="7 7 7" />
+                <mesh filename="../../../model/iiwa7/meshes/torus.obj" scale="10 10 10" />
             </geometry>
         </visual>
         <collision>
             <origin xyz="0.0 0 0.2" rpy="0 2.05 3.1415926" />
             <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/torus.obj" scale="7 7 7" />
+                <mesh filename="../../../model/iiwa7/meshes/torus.obj" scale="10 10 10" />
             </geometry>
         </collision>
     </link>

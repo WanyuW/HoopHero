@@ -42,7 +42,8 @@ KEYS = {
 
     # launch
     GAME_STATE: "",
-    RESET_KEY: ""
+    RESET_KEY: "",
+    RUN_KEY: ""
 }
 
 # global variable
@@ -68,11 +69,31 @@ angle_line = None
 angle_text = None
 shooting_angle_input = ""
 launch_button = None
-launch_process = None
-reset_button = None
-shoot_button = None
-counter = 0
 power_counter = 0
+
+
+def run():
+    simviz_process = subprocess.Popen(["./simviz"])
+    # simviz_pid = simviz_process.pid
+
+    time.sleep(3)
+
+    r.set(GAME_STATE, "1")
+    # print(r.get(GAME_STATE).decode())
+    launch_process = subprocess.Popen(["./controller"])  # Launch the controller process in the background
+
+    # Function to handle Ctrl+C interruption
+    def ctrl_c(signal, frame):
+        simviz_process.terminate()
+        simviz_process.wait()
+        print("Simulation terminated")
+        launch_process.terminate()
+        launch_process.wait()
+        print("Controller terminated")
+        exit(0)
+
+    # Set the signal handler
+    signal.signal(signal.SIGINT, ctrl_c)
 
 
 def button_function():
@@ -82,28 +103,37 @@ def button_function():
     start_frame.place_forget()  # remove login frame
     print("pressed")
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
-    print(r.get(GAME_STATE).decode())
+    # print(r.get(GAME_STATE).decode())
 
-    simviz_process = subprocess.Popen(["./simviz"])
-    # simviz_pid = simviz_process.pid
-    # print("Simulation launched with PID:", simviz_pid)
+    r.set(RUN_KEY, "1")
 
-    # Function to handle Ctrl+C interruption
-    def ctrl_c(signal, frame):
-        simviz_process.terminate()
-        simviz_process.wait()
-        print("Simulation terminated")
-        exit(0)
+    # simviz_process = subprocess.Popen(["./simviz"])
+    # # simviz_pid = simviz_process.pid
+    #
+    # time.sleep(3)
+    #
+    # r.set(GAME_STATE, "1")
+    # # print(r.get(GAME_STATE).decode())
+    # launch_process = subprocess.Popen(["./controller"])  # Launch the controller process in the background
+    #
+    # # Function to handle Ctrl+C interruption
+    # def ctrl_c(signal, frame):
+    #     simviz_process.terminate()
+    #     simviz_process.wait()
+    #     print("Simulation terminated")
+    #     launch_process.terminate()
+    #     launch_process.wait()
+    #     print("Controller terminated")
+    #     exit(0)
+    #
+    # # Set the signal handler
+    # signal.signal(signal.SIGINT, ctrl_c)
 
-    # Set the signal handler
-    signal.signal(signal.SIGINT, ctrl_c)
 
-
-def check_redis_keys(keys, app, counter):
+def check_redis_keys(keys, app):
     # Retrieve the updated Redis keys using appropriate Redis commands
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
-    global launch_process
 
     for key, value in keys.items():
         if r.exists(key):
@@ -125,18 +155,13 @@ def check_redis_keys(keys, app, counter):
                                           font=('Berlin Sans FB Demi', 35), fill="gray84")
     angle_canvas.update()
 
-    # counter += 1
-    # if counter % 120 == 0:
-    #     r.set(RESET_KEY, "1")
-    #     print(counter, r.get(RESET_KEY).decode())
-
-    # if KEYS[CONTROLLER_RUNNING_KEY] == "0":
-    #     print(r.get(CONTROLLER_RUNNING_KEY).decode())
-    #     if launch_process is not None:
-    #         launch_process.terminate()
+    if KEYS[RUN_KEY] == "1":
+        print(r.get(RUN_KEY))
+        run()
+        r.set(RUN_KEY, "0")
 
     # Schedule the next Redis key retrieval after a certain interval
-    app.after(10, check_redis_keys, keys, app, counter)  # Adjust the interval as needed
+    app.after(10, check_redis_keys, keys, app)  # Adjust the interval as needed
 
 
 def on_keydown(event):
@@ -224,23 +249,7 @@ def switch_event3():
 
 
 def launch_function():
-    global launch_button
-    global reset_button
-    global shoot_button
-    global launch_process
-    r.set(GAME_STATE, "1")
-    print(r.get(GAME_STATE).decode())
-    launch_process = subprocess.Popen(["./controller"])  # Launch the controller process in the background
-
-    # Save the controller process ID to a file
-    with open("controller_pid.txt", "w") as pid_file:
-        pid_file.write(str(os.getpid()))
-
-    # launch_button.place_forget()  # remove launch button
-    #
-    # # reset_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
-    # shoot_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
+    r.set(RESET_KEY, "1")
 
 
 def mouse_click(event):
@@ -308,9 +317,6 @@ def main():
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
     global launch_button
-    global reset_button
-    global shoot_button
-    global counter
 
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
@@ -434,7 +440,7 @@ def main():
                                  hover_color="#2f2f2f", width=100)
 
     # Start the Redis key retrieval loop
-    check_redis_keys(KEYS, app, counter)
+    check_redis_keys(KEYS, app)
 
     app.bind('<KeyPress>', on_keydown)
     app.bind('<KeyRelease>', on_keyup)

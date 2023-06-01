@@ -61,7 +61,7 @@
         <origin xyz="0 0 0.095" rpy="0 0 0" />
         <geometry>
           <!-- <mesh filename="../../../model/test_objects/meshes/collision/cup.obj"/> -->
-          <box size="0.072898 0.089916 0.19" />
+          <sphere radius = "0.005" />
         </geometry>
       </collision>
     </link>
