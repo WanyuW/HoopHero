@@ -146,12 +146,12 @@
                 <mesh filename="../../../model/iiwa7/meshes/link6.obj" scale="1 1 1" />
             </geometry>
         </visual>
-        <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/link6.obj" scale="1 1 1" />
-            </geometry>
-        </collision>
+<!--        <collision>-->
+<!--            <origin xyz="0 0 0" rpy="0 0 0" />-->
+<!--            <geometry>-->
+<!--                <mesh filename="../../../model/iiwa7/meshes/link6.obj" scale="1 1 1" />-->
+<!--            </geometry>-->
+<!--        </collision>-->
         <visual>
             <origin xyz="0.23487 0 0.3" rpy="0 0 3.1415926" />
             <geometry>
@@ -159,21 +159,55 @@
             </geometry>
         </visual>
         
+<!--        <visual>-->
+<!--            <origin xyz="-0.1 0 0.2" rpy="0 0.5 3.1415926" />-->
+<!--            <geometry>-->
+<!--                <mesh filename="../../../model/iiwa7/meshes/launcher_box.obj" scale="7 7 7" />-->
+<!--            </geometry>-->
+<!--        </visual>-->
+<!--        <collision>-->
+<!--            <origin xyz="-0.1 0 0.2" rpy="0 0.5 3.1415926" />-->
+<!--            <geometry>-->
+<!--                <mesh filename="../../../model/iiwa7/meshes/launcher_box.obj" scale="10 10 10" />-->
+<!--            </geometry>-->
+<!--        </collision>-->
         <visual>
-            <origin xyz="-0.1 0 0.2" rpy="0 0.5 3.1415926" />
+            <origin xyz="0.0 0 0.2" rpy="0 2.05 3.1415926" />
             <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/launcher_box.obj" scale="7 7 7" />
+                <mesh filename="../../../model/iiwa7/meshes/torus.obj" scale="7 7 7" />
             </geometry>
         </visual>
         <collision>
-            <origin xyz="-0.1 0 0.2" rpy="0 0.5 3.1415926" />
+            <origin xyz="0.0 0 0.2" rpy="0 2.05 3.1415926" />
             <geometry>
-                <mesh filename="../../../model/iiwa7/meshes/launcher_box.obj" scale="10 10 10" />
+                <mesh filename="../../../model/iiwa7/meshes/torus.obj" scale="7 7 7" />
             </geometry>
         </collision>
-        
-        
     </link>
+    
+    <link name="link7">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="0.00001" />
+            <inertia ixx="0.2" iyy="0.2" izz="0.2" ixy="0" ixz="0" iyz="0" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="1 1 0.15" />
+            </geometry>
+        </visual>
+        <!-- <collision>
+            <origin xyz="0 -0.06 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="../../../model/iiwa7/meshes/link5.obj" scale="1 1 1" />
+            </geometry>
+        </collision> -->
+    </link>
+    
+    
+    
+    
     <joint name="j0" type="revolute">
         <parent link="base_link" />
         <child link="link0" />

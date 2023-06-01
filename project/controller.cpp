@@ -18,8 +18,18 @@ using namespace std;
 using namespace Eigen;
 
 bool runloop = false;
-void sighandler(int sig)
-{runloop = false;}
+void sighandler(int sig){runloop = false;}
+bool fSimulationLoopDone = false;
+bool fControllerLoopDone = false;
+
+// helper function
+double sat(double x);
+
+// function for converting string to bool
+bool string_to_bool(const std::string& x);
+
+// function for converting bool to string
+inline const char * const bool_to_string(bool b);
 
 #define RAD(deg) ((double)(deg) * M_PI / 180.0)
 
@@ -98,8 +108,8 @@ int main() {
 	auto posori_task2 = new Sai2Primitives::PosOriTask(robot2, control_link2, control_point2);
 
 	posori_task2->_use_interpolation_flag = true;
-	posori_task2->_use_velocity_saturation_flag = true;
-	posori_task2->_otg->setMaxLinearVelocity(10);
+	posori_task2->_use_velocity_saturation_flag = false;
+	posori_task2->_otg->setMaxLinearVelocity(1000);
 
 	VectorXd posori_task_torques2 = VectorXd::Zero(dof2);
 	posori_task2->_kp_pos = 400.0;
@@ -126,7 +136,7 @@ int main() {
 	vector<int> base_joint_selection{0, 1, 2};
 	auto base_task = new Sai2Primitives::PartialJointTask(robot, base_joint_selection);
 	base_task->_use_interpolation_flag = false;  // turn off if trajectory following; else turn on
-	base_task->_use_velocity_saturation_flag = true;
+	base_task->_use_velocity_saturation_flag = false;
 	base_task->_saturation_velocity << 0.3, 0.3, 0.2;  // adjust based on speed
 
 	VectorXd base_task_torques = VectorXd::Zero(dof);
@@ -148,16 +158,13 @@ int main() {
 
 	// set the desired posture
 	VectorXd q_init_desired = initial_q.tail(7);
-	//VectorXd q_curr_desired = q_init_desired;
-	// q_init_desired <<  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-	q_init_desired << -90.0, -10.0, -10.0, -100.0, 5.0, 95.0, -50.0;
+	q_init_desired << -45.0, -10.0, -10.0, -100.0, 5.0, 95.0, -50.0;
 	q_init_desired *= M_PI/180.0;
 
 	VectorXd _q_init_desired = VectorXd::Zero(dof);
-	_q_init_desired << 0.0, 0.0, 0.0, -90.0, -0.0, 0.0, -90.0, 0.0, 90.0, -45.0;
+	_q_init_desired << 0.0, 0.0, 0.0, -45.0, -0.0, 0.0, -90.0, 0.0, 90.0, -45.0;
 	_q_init_desired *= M_PI/180.0;
 	joint_task -> _desired_position = _q_init_desired;
-	//arm_joint_task->_desired_position = q_init_desired;
 
 	//second robot joint task
 	auto joint_task2 = new Sai2Primitives::JointTask(robot2);
@@ -210,200 +217,238 @@ int main() {
         std::string pre_mode;
         pre_mode = "";
 
+        std::string reset;
+        reset = redis_client.get(RESET_KEY);
 
         while (runloop) {
 
+
+            // read simulation state
+            fSimulationLoopDone = string_to_bool(redis_client.get(SIMULATION_LOOP_DONE_KEY));
+
             // wait for next scheduled loop
-            timer.waitForNextLoop();
+            //timer.waitForNextLoop();
             double time = timer.elapsedTime() - start_time;
 
-            // get shooter mode from redis
-            std::string mode;
-            mode = redis_client.get(SHOOTER_MODE);
-            if (mode != pre_mode) {
-             cout << mode << endl;  //cout the mode only once
-             pre_mode = mode;
-             }
-            VectorXd q_init_desired2(dof2); //initial joint space for kuka
-            // get shooting angle from redis
-            std::string shooting_angle;
-            shooting_angle = redis_client.get(SHOOTING_ANGLE);
-            int angle = stof(shooting_angle); //transfer to integer
+            if (fSimulationLoopDone) {
+                // get shooter mode from redis
+                std::string mode;
+                mode = redis_client.get(SHOOTER_MODE);
+                if (mode != pre_mode) {
+                 cout << mode << endl;  //cout the mode only once
+                 pre_mode = mode;
+                 }
+                VectorXd q_init_desired2(dof2); //initial joint space for kuka
+                // get shooting angle from redis
+                std::string shooting_angle;
+                shooting_angle = redis_client.get(SHOOTING_ANGLE);
+                int angle = stof(shooting_angle); //transfer to integer
 
-            //read robot state from redis
-            robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
-            robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
+                //read robot state from redis
+                robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
+                robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
 
-            // execute redis read callback
-            redis_client.executeReadCallback(0);
+                // execute redis read callback
+                redis_client.executeReadCallback(0);
 
-            // update model
-            robot->updateModel();
-            robot2->updateModel();
-            robot->position(ee_pos, control_link, control_point);
-            base_pose_init_desired(0) = ee_pos(0) - 0.2; // make the base follow the arm
-            base_pose_init_desired(1) = ee_pos(1) - 0.2; // offset between the base and the arm
+                // update model
+                robot->updateModel();
+                robot2->updateModel();
+                robot->position(ee_pos, control_link, control_point);
+                base_pose_init_desired(0) = ee_pos(0) - 0.1; // make the base follow the arm
+                base_pose_init_desired(1) = ee_pos(1) - 0.1; // offset between the base and the arm
 
-						if (state == POSTURE) {
-							N_prec.setIdentity();
-							joint_task -> updateTaskModel(N_prec);
+                //get future position of the basketball
+    //            std::string future_position;
+    //            future_position = redis_client.get(FUTURE_POS);
+    //            cout << future_position << endl;
+    //            x_desired(0) = future_position(0);
+    //            x_desired(1) = future_position(1);
+    //            x_desired(2) = future_position(2);
 
-							joint_task -> computeTorques(joint_task_torques);
-							command_torques = joint_task_torques;
+                if (state == POSTURE) {
 
-							if((robot->_q - _q_init_desired).norm()< 0.05){
-								cout << "POSTURE GOT!"<<endl;
-								joint_task ->reInitializeTask();
-								posori_task ->reInitializeTask();
-								// system("pause");
-								state = IDLE;
-							}
-						}
-            else if (state == INITIALIZE) {
+                    N_prec.setIdentity();
+                    joint_task -> updateTaskModel(N_prec);
+                    joint_task -> computeTorques(joint_task_torques);
+                    command_torques = joint_task_torques;
 
-                //initialize timer before each task
-                 timer.initializeTimer();
-
-                // set controller inputs
-                x_init_desired(0) = 0;
-                x_init_desired(1) = 1;
-                x_init_desired(2) = 0.5; // initial position
-
-                posori_task->_desired_position = x_init_desired;
-                base_task->_desired_position = base_pose_init_desired;
-                arm_joint_task->_desired_position = q_init_desired;
-
-                N_prec.setIdentity();
-                posori_task->updateTaskModel(N_prec);
-                N_prec = posori_task->_N;
-                base_task->updateTaskModel(N_prec);
-                N_prec = base_task->_N;
-                arm_joint_task->updateTaskModel(N_prec);
-
-                base_task->computeTorques(base_task_torques);
-                arm_joint_task->computeTorques(arm_joint_task_torques);
-                posori_task->computeTorques(posori_task_torques);
-
-                command_torques = base_task_torques + arm_joint_task_torques + posori_task_torques;
-
-                if ( (ee_pos - x_init_desired).norm() < 0.015) {
-
-                    cout << "Robot Initialized" << endl;
-                    base_task->reInitializeTask();
-                    arm_joint_task->reInitializeTask();
-                    posori_task->reInitializeTask();
-                    redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                    state = IDLE;
-                    //controller_status = "0";
+                    if ((robot->_q - _q_init_desired).norm() < 0.05){
+                        cout << "POSTURE GOT!"<< endl;
+                        joint_task ->reInitializeTask();
+                        posori_task ->reInitializeTask();
+                        // system("pause");
+                        state = INITIALIZE;
+                    }
                 }
-            }
-            else if (state == IDLE) {
+                else if (state == INITIALIZE) {
 
-                //shooter complete the shooting motion
-                if (mode == "straight") {
-                    q_init_desired2 << 0.0, 40.0, 0.0, -40.0, 0.0, 10.0, 0.0;
+                    //initialize timer before each task
+                     timer.initializeTimer();
+
+                    // set the shooting angle for shooter
+                    q_init_desired2 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+                    q_init_desired2(0) = angle; //getting the shooting angle
+                    q_init_desired2 *= M_PI/180.0;
+
+                    joint_task2->_desired_position = q_init_desired2;
+                    N_prec2.setIdentity();
+                    joint_task2->updateTaskModel(N_prec2);
+                    joint_task2->computeTorques(joint_task_torques2);
+                    command_torques2 = joint_task_torques2;
+                    robot2->position(ee_pos_shooter, control_link2, control_point2);
+
+                    // set controller inputs
+                    x_init_desired(0) = 0;
+                    x_init_desired(1) = 0;
+                    x_init_desired(2) = 0.9; // initial position
+
+                    posori_task->_desired_position = x_init_desired;
+                    base_task->_desired_position = base_pose_init_desired;
+                    arm_joint_task->_desired_position = q_init_desired;
+
+                    N_prec.setIdentity();
+                    posori_task->updateTaskModel(N_prec);
+                    N_prec = posori_task->_N;
+                    base_task->updateTaskModel(N_prec);
+                    N_prec = base_task->_N;
+                    arm_joint_task->updateTaskModel(N_prec);
+
+                    base_task->computeTorques(base_task_torques);
+                    arm_joint_task->computeTorques(arm_joint_task_torques);
+                    posori_task->computeTorques(posori_task_torques);
+
+                    command_torques = base_task_torques + arm_joint_task_torques + posori_task_torques;
+
+                    if ( (ee_pos - x_init_desired).norm() < 0.015) {
+
+                        cout << "Robot Initialized" << endl;
+                        base_task->reInitializeTask();
+                        arm_joint_task->reInitializeTask();
+                        posori_task->reInitializeTask();
+                        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
+                        state = IDLE;
+                        //controller_status = "0";
+                    }
+                }
+                else if (state == IDLE) {
+
+                    //shooter complete the shooting motion
+                    if (mode == "straight") {
+                        q_init_desired2 << 0.0, 30.0, 0.0, -30.0, 0.0, 10.0, 0.0;
+                        }
+
+                    else if (mode == "low_arc") {
+                        q_init_desired2 << 0.0, 25.0, 0.0, -25.0, 0.0, 20.0, 0.0;
+                        }
+
+                    else if (mode == "high_arc") {
+                        q_init_desired2 << 0.0, 20.0, 0.0, -20.0, 0.0, 30.0, 0.0;
+                        } // three shooting modes
+
+                    q_init_desired2(0) = angle; //getting the shooting angle
+                    q_init_desired2 *= M_PI/180.0;
+                    joint_task2->_desired_position = q_init_desired2;
+                    N_prec2.setIdentity();
+                    joint_task2->updateTaskModel(N_prec2);
+                    joint_task2->computeTorques(joint_task_torques2);
+                    command_torques2 = joint_task_torques2;
+                    robot2->position(ee_pos_shooter, control_link2, control_point2);
+
+                    // setting idle position for hoop
+                    x_desired(0) = 0;
+                    x_desired(1) = 0;
+                    x_desired(2) = 0.9;
+
+                    posori_task->_desired_position = x_desired;
+                    base_task->_desired_position = base_pose_init_desired;
+                    arm_joint_task->_desired_position = q_init_desired;
+
+                    // update task model and set hierarchy
+                    N_prec.setIdentity();
+                    posori_task->updateTaskModel(N_prec);
+                    N_prec = posori_task->_N;
+                    base_task->updateTaskModel(N_prec);
+                    N_prec = base_task->_N;
+                    arm_joint_task->updateTaskModel(N_prec);
+
+                    // compute torques
+                    posori_task->computeTorques(posori_task_torques);
+                    base_task->computeTorques(base_task_torques);
+                    arm_joint_task->computeTorques(arm_joint_task_torques);
+
+                    command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
+
+                    if ( (ee_pos - x_desired).norm() < 0.015 && time > 1) {
+                        cout << "Ready for Next Mission" << endl;
+                        base_task->reInitializeTask();
+                        arm_joint_task->reInitializeTask();
+                        posori_task->reInitializeTask();
+                        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
+                        state = HOOP_MOVE;
+                    }
+                }
+                else if (state == HOOP_MOVE) {
+
+                    // shooter back to initial position
+                    q_init_desired2 *= 0;
+                    q_init_desired2(0) = angle;
+                    q_init_desired2 *= M_PI/180.0;
+                        joint_task2->_desired_position = q_init_desired2;
+                    N_prec2.setIdentity();
+                    joint_task2->updateTaskModel(N_prec2);
+                    joint_task2->computeTorques(joint_task_torques2);
+                    command_torques2 = joint_task_torques2;
+                    robot2->position(ee_pos_shooter, control_link2, control_point2);
+
+                    // desired position for hoop
+                    x_desired(0) = 2;
+                    x_desired(1) = 3;
+                    x_desired(2) = 0.6;
+
+                    posori_task->_desired_position = x_desired;
+                    base_task->_desired_position = base_pose_init_desired;
+                    arm_joint_task->_desired_position = q_init_desired;
+
+                    // update task model and set hierarchy
+                    N_prec.setIdentity();
+                    posori_task->updateTaskModel(N_prec);
+                    N_prec = posori_task->_N;
+                    base_task->updateTaskModel(N_prec);
+                    N_prec = base_task->_N;
+                    arm_joint_task->updateTaskModel(N_prec);
+
+                    // compute torques
+                    posori_task->computeTorques(posori_task_torques);
+                    base_task->computeTorques(base_task_torques);
+                    arm_joint_task->computeTorques(arm_joint_task_torques);
+
+                    command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
+
+                    if ( (ee_pos - x_desired).norm() < 0.015) {
+                        cout << "Goal Reached" << endl;
+                        if (reset == "1"){
+                        base_task->reInitializeTask();
+                        arm_joint_task->reInitializeTask();
+                        posori_task->reInitializeTask();
+                        redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
+                        state = INITIALIZE;
+                        }
                     }
 
-                else if (mode == "low_arc") {
-                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 20.0, 0.0;
-                    }
-
-                else if (mode == "high_arc") {
-                    q_init_desired2 << 0.0, 30.0, 0.0, -40.0, 0.0, 70.0, 0.0;
-	            } // three shooting modes
-	            q_init_desired2(0) = angle; //getting the shooting angle
-                q_init_desired2 *= M_PI/180.0;
-	            joint_task2->_desired_position = q_init_desired2;
-                N_prec2.setIdentity();
-                joint_task2->updateTaskModel(N_prec2);
-                joint_task2->computeTorques(joint_task_torques2);
-                command_torques2 = joint_task_torques2;
-                robot2->position(ee_pos_shooter, control_link2, control_point2);
-
-                // setting idle position for hoop
-                x_desired(0) = 0;
-                x_desired(1) = 0;
-                x_desired(2) = 0.9;
-
-                posori_task->_desired_position = x_desired;
-                base_task->_desired_position = base_pose_init_desired;
-                arm_joint_task->_desired_position = q_init_desired;
-
-                // update task model and set hierarchy
-                N_prec.setIdentity();
-                posori_task->updateTaskModel(N_prec);
-                N_prec = posori_task->_N;
-                base_task->updateTaskModel(N_prec);
-                N_prec = base_task->_N;
-                arm_joint_task->updateTaskModel(N_prec);
-
-                // compute torques
-                posori_task->computeTorques(posori_task_torques);
-                base_task->computeTorques(base_task_torques);
-                arm_joint_task->computeTorques(arm_joint_task_torques);
-
-                command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
-
-                if ( (ee_pos - x_desired).norm() < 0.015 && time > 2) {
-                    cout << "Ready for Next Mission" << endl;
-                    base_task->reInitializeTask();
-                    arm_joint_task->reInitializeTask();
-                    posori_task->reInitializeTask();
-                    redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                    state = HOOP_MOVE;
                 }
-            }
-            else if (state == HOOP_MOVE) {
+            // execute redis write callback
+            redis_client.executeWriteCallback(0);
 
-                // shooter back to initial position
-                q_init_desired2 *= 0;
-                q_init_desired2(0) = angle;
-                q_init_desired2 *= M_PI/180.0;
-	            	joint_task2->_desired_position = q_init_desired2;
-                N_prec2.setIdentity();
-                joint_task2->updateTaskModel(N_prec2);
-                joint_task2->computeTorques(joint_task_torques2);
-                command_torques2 = joint_task_torques2;
-                robot2->position(ee_pos_shooter, control_link2, control_point2);
+            counter++;
+	        }
+		fControllerLoopDone = true;
+        redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
+        }
 
-                // setting desired position for hoop
-                x_desired(0) = 2;
-                x_desired(1) = -2;
-                x_desired(2) = 0.4;
-
-                posori_task->_desired_position = x_desired;
-                base_task->_desired_position = base_pose_init_desired;
-                arm_joint_task->_desired_position = q_init_desired;
-
-                // update task model and set hierarchy
-                N_prec.setIdentity();
-                posori_task->updateTaskModel(N_prec);
-                N_prec = posori_task->_N;
-                base_task->updateTaskModel(N_prec);
-                N_prec = base_task->_N;
-                arm_joint_task->updateTaskModel(N_prec);
-
-                // compute torques
-                posori_task->computeTorques(posori_task_torques);
-                base_task->computeTorques(base_task_torques);
-                arm_joint_task->computeTorques(arm_joint_task_torques);
-
-                command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
-
-                if ( (ee_pos - x_desired).norm() < 0.015) {
-                    cout << "Goal Reached" << endl;
-                    base_task->reInitializeTask();
-                    arm_joint_task->reInitializeTask();
-                    posori_task->reInitializeTask();
-                    redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                    state = INITIALIZE;
-                }
-            }
-		// execute redis write callback
-		redis_client.executeWriteCallback(0);
-
-		counter++;
-	}
+	// controller loop is turned off
+    fControllerLoopDone = false;
+    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";
@@ -415,4 +460,28 @@ int main() {
 
 	return 0;
     }
+}
+
+
+double sat(double x) {
+    if (abs(x) <= 1.0) {
+        return x;
+    }
+    else {
+        return signbit(x);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+bool string_to_bool(const std::string& x) {
+    assert(x == "false" || x == "true");
+    return x == "true";
+}
+
+//------------------------------------------------------------------------------
+
+inline const char * const bool_to_string(bool b)
+{
+    return b ? "true" : "false";
 }

@@ -29,4 +29,18 @@ const std::string GRAVITY_KEY = "sai2::sim::world_gravity";
 const std::string RESET_KEY = "sai2::sim::reset";
 const std::string SHOOTER_EE_POS_INWORLD = "sai2::shooter::ee_pos_inworld";
 
+// collision keys
+const std::string OBJ_JOINT_ANGLES_KEY  = "cs225a::object::cup::sensors::q";
+const std::string OBJ_JOINT_VELOCITIES_KEY = "cs225a::object::cup::sensors::dq";
+
+// camera keys
+const std::string CAMERA_POS_KEY = "cs225a::camera::pos";
+const std::string CAMERA_ORI_KEY = "cs225a::camera::ori";
+const std::string CAMERA_DETECT_KEY = "cs225a::camera::detect";
+const std::string CAMERA_OBJ_POS_KEY = "cs225a::camera::obj_pos";
+
+// - read + write:
+const std::string SIMULATION_LOOP_DONE_KEY = "cs225a::simulation::done";
+const std::string CONTROLLER_LOOP_DONE_KEY = "cs225a::controller::done";
+
 

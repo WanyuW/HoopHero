@@ -130,6 +130,7 @@ int main() {
 	sim->setJointVelocities(robot_name, robot->_dq);
 
 
+
 	// fill in object information 
 	for (int i = 0; i < n_objects; ++i) {
 		Vector3d _object_pos, _object_lin_vel, _object_ang_vel;
@@ -146,8 +147,8 @@ int main() {
     sim->setCollisionRestitution(0);
 
     // set co-efficient of friction
-    sim->setCoeffFrictionStatic(0.0);
-    sim->setCoeffFrictionDynamic(0.0);
+    sim->setCoeffFrictionStatic(0.2);
+    sim->setCoeffFrictionDynamic(0.2);
 
 	/*------- Set up visualization -------*/
 	// set up error callback
@@ -185,7 +186,7 @@ int main() {
 
 	// init redis client values 
 	redis_client.set(CONTROLLER_RUNNING_KEY, "0");
-	redis_client.set(RESET_KEY, "0");
+	redis_client.set(RESET_KEY, "1");
 	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
 	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
     redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
@@ -427,10 +428,10 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Simul
 			if (redis_client_test.get(RESET_KEY) == "1") {
 
                 // reset object information
-                cout << redis_client_test.get(RESET_KEY) << endl;
+                //cout << redis_client_test.get(RESET_KEY) << endl;
                 for (int i = 0; i < n_objects; ++i) {
                     // Reset the dynamic object to the desired position and orientation
-                    Vector3d _object_pos(ee_pos_shooter_inworld(0), ee_pos_shooter_inworld(1), 3.2);
+                    Vector3d _object_pos(ee_pos_shooter_inworld(0), ee_pos_shooter_inworld(1) - 0.13, 1); // ball above donut
                     Quaterniond _object_ori(1, 0, 0, 0);
                     Vector3d _object_lin_vel(0.0, 0.0, 0.0);
                     Vector3d _object_ang_vel(0.0, 0.0, 0.0);
