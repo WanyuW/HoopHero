@@ -647,7 +647,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             force_sensor->update(sim);
             force_sensor->getForceLocalFrame(sensed_force);  // refer to ForceSensorSim.h in sai2-common/src/force_sensor (can also get wrt global frame)
             force_sensor->getMomentLocalFrame(sensed_moment);
-            std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
+            // std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
 
             // calculate future pos
 //            if (flag == 0 && curr_time - pred_start_time >= 1.59 && curr_time - pred_start_time <= 1.6) {

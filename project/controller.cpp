@@ -16,7 +16,7 @@
 
 using namespace std;
 using namespace Eigen;
-int sleep_counter = 0; // todo: write sleep function
+int sleep_counter = 0;
 
 bool runloop = false;
 void sighandler(int sig){runloop = false;}
@@ -384,12 +384,19 @@ int main() {
 
                     if ( (ee_pos - x_desired).norm() < 0.015) {
                         cout << "Goal Reached" << endl;
-                        // todo: sleep for 2 secs
                         base_task->reInitializeTask();
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                        hoop_state = HOOP_INITIALIZE;
+                        if (sleep_counter < 2000) {
+//                            if (sleep_counter == 0) cout << "oh\n" << endl;
+                            sleep_counter++;
+                            }
+                        else {
+                            hoop_state = HOOP_INITIALIZE;
+                            sleep_counter = 0;
+//                            cout << "my\ngod\n" << endl;
+                        }
                     }
 
                 }
@@ -455,8 +462,15 @@ int main() {
                         else if (mode == "high_arc") {
                             q_init_desired2 << angle, 20.0, 0.0, -20.0, 0.0, 30.0, 0.0;
                         } // three shooting modes
-                        //todo: sleep for 0.5 sec
-                        shooter_state = SHOOTER_SHOOT;
+                        if (sleep_counter < 2000) {
+//                            if (sleep_counter == 0) cout << "oh\n" << endl;
+                            sleep_counter++;
+                            }
+                        else {
+                            shooter_state = SHOOTER_SHOOT;
+                            sleep_counter = 0;
+//                            cout << "my\ngod\n" << endl;
+                        }
                     }
                 }
                 else if (shooter_state == SHOOTER_SHOOT){
