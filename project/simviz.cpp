@@ -455,6 +455,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 	// prepare simulation
 	int dof = robot->dof();
     int dof2 = robot2->dof();
+    int dof_obj = object->dof();
 	VectorXd command_torques = VectorXd::Zero(dof);
     VectorXd command_torques2 = VectorXd::Zero(dof2);
 	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
@@ -568,6 +569,9 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             ui_force_widget->getUIForce(ui_force);
             ui_force_widget->getUIJointTorques(ui_force_command_torques);
 
+            // add sensed force
+//            sensed_force
+
             sim->setJointTorques(robot_name, command_torques + g);
 
             if (fRobotLinkSelect) {
@@ -595,6 +599,17 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             ee_pos_shooter_inworld(1) = ee_pos_shooter_inworld(1) - 1.5;
 
             // update object
+            if (redis_client.get(RESET_KEY) == "1") {
+                VectorXd reset_ball_pos = object->_q;
+                VectorXd reset_ball_vel = VectorXd::Zero(dof_obj);
+                reset_ball_pos(0) = 0.0;
+                reset_ball_pos(1) = 0.0;
+                reset_ball_pos(2) = 0.0;
+                sim->setJointPositions(obj_name, reset_ball_pos);
+                sim->setJointVelocities(obj_name, reset_ball_vel);
+                redis_client.set(RESET_KEY, "0");
+            }
+
             sim->getJointPositions(obj_name, object->_q);
             sim->getJointVelocities(obj_name, object->_dq);
             object->updateModel();
@@ -603,44 +618,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             for (int i = 0; i < n_objects; ++i) {
                 sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
                 sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-                if (redis_client_test.get(RESET_KEY) == "1") {
-
-                    // reset object information
-                    cout << redis_client_test.get(RESET_KEY) << endl;
-                    for (int i = 0; i < n_objects; ++i) {
-                        // Reset the dynamic object to the desired position and orientation
-                        Vector3d _object_pos(ee_pos_shooter_inworld(0), ee_pos_shooter_inworld(1), 3.2);
-                        Quaterniond _object_ori(1, 0, 0, 0);
-                        Vector3d _object_lin_vel(0.0, 0.0, 0.0);
-                        Vector3d _object_ang_vel(0.0, 0.0, 0.0);
-
-                        sim->setObjectPosition(object_names[i], _object_pos, _object_ori);
-                        setObjectVel(object_names[i], _object_lin_vel, _object_ang_vel, sim);
-
-                        object_pos.clear();
-                        object_pos.push_back(_object_pos);
-                        object_ori.clear();
-                        object_lin_vel.push_back(_object_lin_vel);
-                        object_lin_vel.clear();
-                        object_ori.push_back(_object_ori);
-                        object_ang_vel.clear();
-                        object_ang_vel.push_back(_object_ang_vel);
-
-                        sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
-                        sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-
-        //                cout << "linear velocity: " << "\t" << object_lin_vel[i].transpose() << endl;
-        //                cout << "set velocity: " << "\t" << _object_lin_vel.transpose() << endl;
-                        pred_start_time = curr_time;
-                        sim->integrate(loop_dt);
-                        redis_client_test.set(RESET_KEY, "0");
-    //                    cout << redis_client_test.get(RESET_KEY) << endl;
-                     }
-                }
-
-                sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
-    //		    cout << "gravity:" << "\t" << graVec.transpose() << endl;
-
             }
 
             // update force sensor readings

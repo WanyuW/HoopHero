@@ -326,6 +326,11 @@ int main() {
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
+
+                        // reset the basketball
+                        redis_client.set(RESET_KEY, "1");
+                        // todo: function to be added to reset the ball;
+
                         hoop_state = HOOP_IDLE;
                         //controller_status = "0";
                     }
@@ -414,9 +419,6 @@ int main() {
                     command_torques2 = joint_task_torques2;
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
-                    // reset the basketball
-                    // todo: function to be added to reset the ball;
-
                     // detect if the ball is reseted in the hand
 //                   if ((robot2->_q - q_init_desired2).norm() < 0.05 && shooter_force_sensor != 0){
 //                        cout << "shooter reset"<< endl;
@@ -425,6 +427,7 @@ int main() {
 //                        shooter_state = SHOOTER_SET;
 //                    }
                 }
+
                 else if (shooter_state == SHOOTER_SET){
 
                     // set the shooting angle for shooter
