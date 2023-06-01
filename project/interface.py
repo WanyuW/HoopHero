@@ -72,6 +72,7 @@ launch_process = None
 reset_button = None
 shoot_button = None
 counter = 0
+power_counter = 0
 
 
 def button_function():
@@ -142,10 +143,15 @@ def on_keydown(event):
     global start_time
     global time_flag
     global wind_canvas, wind_line, wind_text
+    global power_counter
+    global power
     if event.char == ' ':
-        start_time = time.time()
-        time_flag = 1
+        power_counter += 1
         # print(start_time)
+        power_progress = power_counter / 50
+        power.set(power_progress)
+        r.set(SHOOTER_POWER, str(power_progress))
+        power.update()
 
     # random wind
     if event.char == 'r':
@@ -169,18 +175,13 @@ def on_keyup(event):
     global end_time
     global start_time
     global time_flag
+    global power_counter
     if event.char == 'a':
-        if start_time is not None:
-            end_time = time.time()
-            duration = end_time - start_time
-            # print(start_time, duration, end_time)
-            power_progress = duration / 10
-            power.set(power_progress)
-            r.set(SHOOTER_POWER, str(power_progress))
-            power.update()
-            # print(power_progress, KEYS[SHOOTER_POWER], power.get())
-            time_flag = 0
-            start_time = None
+        power_counter = 0
+        power_progress = power_counter / 50
+        power.set(power_progress)
+        r.set(SHOOTER_POWER, str(power_progress))
+        power.update()
 
 
 def switch_event1():

@@ -9,6 +9,20 @@ const std::string JOINT_VELOCITIES_KEY = "sai2::sim::panda::sensors::dq";
 const std::string JOINT_TORQUES_COMMANDED_KEY = "sai2::sim::panda::actuators::fgc";
 const std::string CONTROLLER_RUNNING_KEY = "sai2::sim::panda::controller";
 
+// collision keys
+const std::string OBJ_JOINT_ANGLES_KEY  = "cs225a::object::cup::sensors::q";
+const std::string OBJ_JOINT_VELOCITIES_KEY = "cs225a::object::cup::sensors::dq";
+
+// camera keys
+const std::string CAMERA_POS_KEY = "cs225a::camera::pos";
+const std::string CAMERA_ORI_KEY = "cs225a::camera::ori";
+const std::string CAMERA_DETECT_KEY = "cs225a::camera::detect";
+const std::string CAMERA_OBJ_POS_KEY = "cs225a::camera::obj_pos";
+
+// - read + write:
+const std::string SIMULATION_LOOP_DONE_KEY = "cs225a::simulation::done";
+const std::string CONTROLLER_LOOP_DONE_KEY = "cs225a::controller::done";
+
 // define keys for project
 const std::string HOOP_EE_POS = "sai2::hoop::ee_pos";
 const std::string HOOP_EE_VEL = "sai2::hoop::ee_vel";
