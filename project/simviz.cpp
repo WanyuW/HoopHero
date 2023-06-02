@@ -40,7 +40,7 @@ const string robot2_name = "kuka_iiwa";    //urdf for the kuka_iiwa
 const string camera_name = "camera_fixed";
 const string base_link_name = "link0";
 const string ee_link_name = "link7";
-const string sensor_link_name = "link6";
+const string sensor_link_name = "link7";
 
 // basketball - please work
 const string obj_file = "./resources/ball.urdf";
@@ -616,9 +616,15 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             force_sensor->update(sim);
             force_sensor->getForce(sensed_force);  // refer to ForceSensorSim.h in sai2-common/src/force_sensor (can also get wrt global frame)
             force_sensor->getMoment(sensed_moment);
-            if (abs(sensed_force(2)) > 0.6) redis_client.set(BALL_READY_KEY, "1");
+            if (sensed_force.norm() > 0.6) {
+                redis_client.set(BALL_READY_KEY, "1");
+//                cout << redis_client_test.get(BALL_READY_KEY) << endl;
+            }
             else redis_client.set(BALL_READY_KEY, "0");
-//            if (counter % 1200 == 0) std::cout << counter << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
+            if (counter % 1200 == 0) {
+                std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose();
+                std::cout << sensed_force.norm() << endl;
+            }
 
             // calculate future pos
             if (redis_client.get(PREDICTION_READY_KEY) == "1") {
@@ -641,8 +647,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 curr_lin_vel = object_Jv * curr_dq;
                 object_future_pos = posPrediction(curr_pos, curr_lin_vel, time_duration, curr_time, sim);
             }
-
-
 
             // query object position and ee pos/ori for camera detection
             object->positionInWorld(obj_pos, "link6");

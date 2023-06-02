@@ -291,7 +291,7 @@ int main() {
                     command_torques = joint_task_torques;
 
                     if ((robot->_q - _q_init_desired).norm() < 0.05){
-//                        cout << "POSTURE GOT!"<< endl;
+                        cout << "hoop_idle!"<< endl;
                         joint_task ->reInitializeTask();
                         posori_task ->reInitializeTask();
                         // system("pause");
@@ -335,6 +335,7 @@ int main() {
 
                         // reset the basketball
                         if (redis_client.get(SHOOTER_READY_KEY) == "1") {
+                            cout << "hoop_idle" << '\n';
                             redis_client.set(RESET_KEY, "1");
                             hoop_state = HOOP_IDLE;
                             //controller_status = "0";
@@ -404,6 +405,7 @@ int main() {
                             sleep_counter++;
                             }
                         else {
+                            cout << "hoop initialize" << endl;
                             hoop_state = HOOP_INITIALIZE;
                             sleep_counter = 0;
 //                            cout << "my\ngod\n" << endl;
@@ -446,7 +448,7 @@ int main() {
                     VectorXd q_init_desired_2 = VectorXd::Zero(dof2);
                     q_init_desired_2(0) = angle; //getting the shooting angle
                     q_init_desired_2 *= M_PI/180.0;
-                    if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.0001)){
+                    if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.05)){
 
                         // turn the first angle
                         joint_task2->_desired_position = q_init_desired_2;
@@ -458,9 +460,8 @@ int main() {
 
                     }
                     else {
-
                         float power = stof(shooter_power);
-                        cout << power << endl;
+//                        cout << power << endl;
                         joint_task2->_kp = 50.0 * (power + 1);
                         joint_task2->_kv = 15.0;
 
@@ -505,6 +506,7 @@ int main() {
                         cout << "shooter reset"<< endl;
                         shooter_state = SHOOTER_RESET;
                         redis_client.set(PREDICTION_READY_KEY, "1");
+                        cout << "hoop move" << endl;
                         hoop_state = HOOP_MOVE;
                     }
                 }
