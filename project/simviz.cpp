@@ -55,17 +55,6 @@ vector<Quaterniond> object_ori;
 vector<Vector3d> object_ang_vel;
 const int n_objects = object_names.size();
 
-// estimate future position for dynamic obj
-//Vector3d object_future_pos;
-//Vector3d object_future_lin_vel;
-//Quaterniond object_future_ori;
-//Vector3d object_future_ang_vel;
-//Vector3d curr_pos;
-//Vector3d curr_lin_vel;
-//Quaterniond curr_ori;
-//Vector3d curr_ang_vel;
-//int flag = 0;
-
 // force sensor
 ForceSensorSim* force_sensor;
 
@@ -223,8 +212,8 @@ int main() {
     sim->setCollisionRestitution(0.2);
 
     // set co-efficient of friction - this causes jitter
-    sim->setCoeffFrictionStatic(0.0);
-    sim->setCoeffFrictionDynamic(0.0);
+    sim->setCoeffFrictionStatic(0.5);
+    sim->setCoeffFrictionDynamic(0.5);
 
     // initialize force sensor: needs Sai2Simulation sim interface type
     force_sensor = new ForceSensorSim(robot2_name, sensor_link_name, Eigen::Affine3d::Identity(), robot2);
@@ -278,6 +267,9 @@ int main() {
     redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
     redis_client.setEigenMatrixJSON(OBJ_JOINT_ANGLES_KEY, object->_q);
     redis_client.setEigenMatrixJSON(OBJ_JOINT_VELOCITIES_KEY, object->_dq);
+    redis_client.set(SHOOTER_READY_KEY, "0");
+    redis_client.set(BALL_READY_KEY, "0");
+    redis_client.set(PREDICTION_READY_KEY, "0");
 //    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 //    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
@@ -523,7 +515,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 	LoopTimer timer;
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000);
-	double time_slowdown_factor = 3.0;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
+	double time_slowdown_factor = 0.5;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
 	bool fTimerDidSleep = true;
 	double start_time = timer.elapsedTime() / time_slowdown_factor; // secs
 	double last_time = start_time;
@@ -610,7 +602,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 sim->setJointVelocities(obj_name, reset_ball_vel);
                 redis_client.set(RESET_KEY, "0");
             }
-
             sim->getJointPositions(obj_name, object->_q);
             sim->getJointVelocities(obj_name, object->_dq);
             object->updateModel();
@@ -630,19 +621,28 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 //            if (counter % 1200 == 0) std::cout << counter << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
 
             // calculate future pos
-//            if (flag == 0 && curr_time - pred_start_time >= 1.59 && curr_time - pred_start_time <= 1.6) {
-//                double time_duration = 0.1;
-//                object_future_pos = posPrediction(object_pos[0], object_lin_vel[0], time_duration, curr_time, sim);
-//    //            pred_start_time = curr_time;
-//            }
+            if (redis_client.get(PREDICTION_READY_KEY) == "1") {
+                double time_duration = 0.1;
+                Vector3d object_future_pos;
+                Vector3d curr_pos;
+                Vector3d curr_lin_vel;
+                VectorXd curr_q(dof_obj);
+                VectorXd curr_dq(dof_obj);
+                MatrixXd object_Jv = MatrixXd::Zero(3,dof_obj);
+                string object_ee_link = "link6";
+                Vector3d object_ee_point = Vector3d(0, 0, 0);
 
-//            if (flag == 1) {
-//                sim_pred_counter++;
-//                if (sim_pred_counter == 100) {
-//                    cout << curr_time << '\t' << object_pos[0].transpose() << endl;
-//                }
-//                flag = 0;
-//            }
+                object->Jv(object_Jv, object_ee_link, object_ee_point);
+                sim->getJointPositions(obj_name, curr_q);
+                curr_pos(0) = curr_q(0);
+                curr_pos(1) = curr_q(1);
+                curr_pos(2) = curr_q(2);
+                sim->getJointVelocities(obj_name, curr_dq);
+                curr_lin_vel = object_Jv * curr_dq;
+                object_future_pos = posPrediction(curr_pos, curr_lin_vel, time_duration, curr_time, sim);
+            }
+
+
 
             // query object position and ee pos/ori for camera detection
             object->positionInWorld(obj_pos, "link6");
@@ -800,11 +800,12 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_dur
     cout << gra_g.transpose() << endl;
     // calculate and print out
     object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
+    if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
     cout << "current position" << endl;
     cout << curr_time << '\t' << curr_pos.transpose() << endl;
     cout << "future position" << endl;
     cout << curr_time + time_duration << '\t' << object_future_pos.transpose() << endl;
-//    flag = 1;
+    redis_client.set(PREDICTION_READY_KEY, "0");
     redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
     return object_future_pos;
 }

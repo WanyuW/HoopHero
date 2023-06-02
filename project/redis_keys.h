@@ -47,3 +47,5 @@ const std::string EE_FORCE_KEY = "cs225a::sensor::force";
 const std::string EE_MOMENT_KEY = "cs225a::sensor::moment";
 
 const std::string BALL_READY_KEY = "sai2::sim::ball_ready";
+const std::string SHOOTER_READY_KEY = "sai2::sim::shooter_ready";
+const std::string PREDICTION_READY_KEY = "sai2::sim::prediction_ready";
