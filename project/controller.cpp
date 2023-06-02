@@ -399,7 +399,7 @@ int main() {
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                        if (sleep_counter < 500) {
+                        if (sleep_counter < 10) {
 //                            if (sleep_counter == 0) cout << "oh\n" << endl;
                             sleep_counter++;
                             }
@@ -432,7 +432,7 @@ int main() {
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     // detect if the ball is reseted in the hand
-                    if ((robot2->_q - q_init_desired2).norm() < 0.05 && redis_client.get(BALL_READY_KEY) == "1"){
+                    if (((robot2->_q - q_init_desired2).norm() < 0.05) && (redis_client.get(BALL_READY_KEY) == "1")){
                         cout << "shooter set"<< endl;
                         joint_task2 ->reInitializeTask();
                         posori_task2 ->reInitializeTask();
@@ -446,7 +446,7 @@ int main() {
                     VectorXd q_init_desired_2 = VectorXd::Zero(dof2);
                     q_init_desired_2(0) = angle; //getting the shooting angle
                     q_init_desired_2 *= M_PI/180.0;
-                    if (hoop_state != HOOP_IDLE && ((robot2 -> _q - q_init_desired_2).norm() > 0.0001)){
+                    if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.0001)){
 
                         // turn the first angle
                         joint_task2->_desired_position = q_init_desired_2;
@@ -463,7 +463,6 @@ int main() {
                         cout << power << endl;
                         joint_task2->_kp = 50.0 * (power + 1);
                         joint_task2->_kv = 15.0;
-                        cout << joint_task2->_kp << endl;
 
                          // set shooting gesture
                         if (mode == "straight") {
@@ -481,7 +480,7 @@ int main() {
                             q_init_desired2 *= M_PI/180.0;
                         } // three shooting modes
 
-                        if (sleep_counter < 300) {
+                        if (sleep_counter < 10) {
 //                            if (sleep_counter == 0) cout << "oh\n" << endl;
                             sleep_counter++;
                             }
