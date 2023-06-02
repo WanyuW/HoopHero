@@ -596,7 +596,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 VectorXd reset_ball_pos = object->_q;
                 VectorXd reset_ball_vel = VectorXd::Zero(dof_obj);
                 reset_ball_pos(0) = 0.0;
-                reset_ball_pos(1) = 0.0;
+                reset_ball_pos(1) = 0.1;
                 reset_ball_pos(2) = 0.0;
                 sim->setJointPositions(obj_name, reset_ball_pos);
                 sim->setJointVelocities(obj_name, reset_ball_vel);
@@ -800,6 +800,9 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_dur
     cout << gra_g.transpose() << endl;
     // calculate and print out
     object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
+    object_future_pos(1) = object_future_pos(1) - 2.5;
+    object_future_pos(2) = object_future_pos(2) + 1.2;
+
     if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
     cout << "current position" << endl;
     cout << curr_time << '\t' << curr_pos.transpose() << endl;
