@@ -372,14 +372,14 @@ int main() {
                 else if (hoop_state == HOOP_MOVE) {
 
                     // desired position for hoop
-                    x_desired(0) = 0;
-                    x_desired(1) = 0;
-                    x_desired(2) = 0; // todo: need to change this to the predicted position
-//                    future_position = redis_client.getEigenMatrixJSON(FUTURE_POS);
-//                    cout << future_position.transpose() << endl;
-//                    x_desired(1) = future_position(0);
-//                    x_desired(0) = future_position(1) + 2.7;
-//                    x_desired(2) = future_position(2) - 0.25;
+//                    x_desired(0) = 0;
+//                    x_desired(1) = 0;
+//                    x_desired(2) = 0; // todo: need to change this to the predicted position
+                    future_position = redis_client.getEigenMatrixJSON(FUTURE_POS);
+                    cout << future_position.transpose() << endl;
+                    x_desired(0) = 5 - future_position(1) - 0.15;
+                    x_desired(1) = future_position(0) - 0.01;
+                    x_desired(2) = future_position(2) - 0.15;
                     Vector3d ee_pos_inworld;
                     robot->positionInWorld(ee_pos_inworld, "link7");
                     cout << "x_desire: " << x_desired.transpose() << endl;
