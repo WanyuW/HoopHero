@@ -800,6 +800,9 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_dur
     cout << gra_g.transpose() << endl;
     // calculate and print out
     object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
+    object_future_pos(1) = object_future_pos(1) - 2.5;
+    object_future_pos(2) = object_future_pos(2) + 1.2;
+
     if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
     cout << "current position" << endl;
     cout << curr_time << '\t' << curr_pos.transpose() << endl;

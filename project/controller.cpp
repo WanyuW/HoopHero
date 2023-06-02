@@ -100,7 +100,7 @@ int main() {
 	MatrixXd N_prec = MatrixXd::Identity(dof, dof);
 	MatrixXd N_prec2 = MatrixXd::Identity(dof2, dof2); // for the second robot
     redis_client.set(SHOOTER_READY_KEY, "1");
-    
+
 	// panda pose task
 	const string control_link = "link7";
 	const Vector3d control_point = Vector3d(0, 0, 0.07);
