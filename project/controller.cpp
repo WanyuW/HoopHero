@@ -456,15 +456,6 @@ int main() {
                         command_torques2 = joint_task_torques2;
                         robot2->position(ee_pos_shooter, control_link2, control_point2);
 
-                        // set shooter power to k
-//                        shooter_power = redis_client.get(SHOOTER_POWER);
-//                        float power = stof(shooter_power);
-//                        cout << power << endl;
-//                        joint_task2->_kp = 800.0 * (power + 1);
-//                        joint_task2->_kv = 40.0;
-////                        posori_task2->_kp_ori =  40.0 * (power + 1);
-////                        posori_task2->_kv_ori = 4.0;
-//                        cout << joint_task2->_kp << endl;
                     }
                     else {
 
