@@ -99,7 +99,8 @@ int main() {
 	VectorXd command_torques2 = VectorXd::Zero(dof2);
 	MatrixXd N_prec = MatrixXd::Identity(dof, dof);
 	MatrixXd N_prec2 = MatrixXd::Identity(dof2, dof2); // for the second robot
-
+    redis_client.set(SHOOTER_READY_KEY, "1");
+    
 	// panda pose task
 	const string control_link = "link7";
 	const Vector3d control_point = Vector3d(0, 0, 0.07);
@@ -118,10 +119,12 @@ int main() {
 
 	//kuka pose task
 	const string control_link2 = "link6";
-	const Vector3d control_point2 = Vector3d(0, 0, 0.07);
+	const Vector3d control_point2 = Vector3d(0, 0, 0.2);
+	MatrixXd Jv = MatrixXd::Zero(3,dof2);
+//	robot2->Jv(Jv, control_link2, control_point2);
 	auto posori_task2 = new Sai2Primitives::PosOriTask(robot2, control_link2, control_point2);
 
-	posori_task2->_use_interpolation_flag = true;
+	posori_task2->_use_interpolation_flag = false;
 	posori_task2->_use_velocity_saturation_flag = false;
 	posori_task2->_otg->setMaxLinearVelocity(1000);
 
@@ -152,7 +155,7 @@ int main() {
 	auto base_task = new Sai2Primitives::PartialJointTask(robot, base_joint_selection);
 	base_task->_use_interpolation_flag = false;  // turn off if trajectory following; else turn on
 	base_task->_use_velocity_saturation_flag = false;
-	base_task->_saturation_velocity << 0.3, 0.3, 0.2;  // adjust based on speed
+	base_task->_saturation_velocity << 10.3, 10.3, 0.2;  // adjust based on speed
 
 	VectorXd base_task_torques = VectorXd::Zero(dof);
 	base_task->_kp = 400;
@@ -183,12 +186,12 @@ int main() {
 
 	//second robot joint task
 	auto joint_task2 = new Sai2Primitives::JointTask(robot2);
-	joint_task2->_use_interpolation_flag = true;
-	joint_task2->_use_velocity_saturation_flag = true;
+	joint_task2->_use_interpolation_flag = false;
+	joint_task2->_use_velocity_saturation_flag = false;
 
 	VectorXd joint_task_torques2 = VectorXd::Zero(dof2);
-	joint_task2->_kp = 800.0;
-	joint_task2->_kv = 40.0;
+//	joint_task2->_kp = 800.0;
+//	joint_task2->_kv = 40.0;
 
 	// containers
 	Matrix3d ee_rot;
@@ -204,6 +207,7 @@ int main() {
 	redis_client.addEigenToReadCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
 	redis_client.addEigenToReadCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
 	redis_client.addEigenToReadCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
+	redis_client.addStringToReadCallback(0, SHOOTER_POWER, shooter_power);
 
 	// add to write callback
 	redis_client.addStringToWriteCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
@@ -330,10 +334,11 @@ int main() {
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
 
                         // reset the basketball
-                        redis_client.set(RESET_KEY, "1");
-
-                        hoop_state = HOOP_IDLE;
-                        //controller_status = "0";
+                        if (redis_client.get(SHOOTER_READY_KEY) == "1") {
+                            redis_client.set(RESET_KEY, "1");
+                            hoop_state = HOOP_IDLE;
+                            //controller_status = "0";
+                        }
                     }
                 }
                 else if (hoop_state == HOOP_IDLE) {
@@ -394,7 +399,7 @@ int main() {
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                        if (sleep_counter < 2000) {
+                        if (sleep_counter < 500) {
 //                            if (sleep_counter == 0) cout << "oh\n" << endl;
                             sleep_counter++;
                             }
@@ -410,6 +415,11 @@ int main() {
                 if (shooter_state == SHOOTER_IDLE){
 
                     // set the shooter to initial position
+//                    Vector3d force_sensed = Vector3d::Zero(3);
+//                    force_sensed = redis_client.getEigenMatrixJSON(EE_FORCE_KEY);
+//                    VectorXd torque_compensate = VectorXd::Zero(dof2);
+//                    robot2->Jv(Jv, control_link2, control_point2);
+//                    torque_compensate = Jv.transpose() * force_sensed;
                     q_init_desired2 *= 0;
                     q_init_desired2(0) = angle;
                     q_init_desired2 *= M_PI/180.0;
@@ -418,24 +428,25 @@ int main() {
                     joint_task2->updateTaskModel(N_prec2);
                     joint_task2->computeTorques(joint_task_torques2);
                     command_torques2 = joint_task_torques2;
+                    //command_torques2 = joint_task_torques2 - torque_compensate;
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     // detect if the ball is reseted in the hand
                     if ((robot2->_q - q_init_desired2).norm() < 0.05 && redis_client.get(BALL_READY_KEY) == "1"){
-                        cout << "shooter reset"<< endl;
+                        cout << "shooter set"<< endl;
                         joint_task2 ->reInitializeTask();
                         posori_task2 ->reInitializeTask();
                         shooter_state = SHOOTER_SET;
+                        redis_client.set(SHOOTER_READY_KEY, "0");
                     }
                 }
-
                 else if (shooter_state == SHOOTER_SET){
 
                     // set the shooting angle for shooter
                     VectorXd q_init_desired_2 = VectorXd::Zero(dof2);
                     q_init_desired_2(0) = angle; //getting the shooting angle
                     q_init_desired_2 *= M_PI/180.0;
-                    if (hoop_state != HOOP_IDLE && (robot2 -> _q - q_init_desired2).norm() > 0.0001){
+                    if (hoop_state != HOOP_IDLE && ((robot2 -> _q - q_init_desired_2).norm() > 0.0001)){
 
                         // turn the first angle
                         joint_task2->_desired_position = q_init_desired_2;
@@ -446,12 +457,14 @@ int main() {
                         robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                         // set shooter power to k
-                        shooter_power = redis_client.get(SHOOTER_POWER);
-                        float power = stof(shooter_power) ;
-                        posori_task2->_kp_pos = 400.0 * (power + 1);
-                        posori_task2->_kv_pos = 40.0;
-                        posori_task2->_kp_ori =  400.0 * (power + 1);
-                        posori_task2->_kv_ori = 40.0;
+//                        shooter_power = redis_client.get(SHOOTER_POWER);
+                        float power = stof(shooter_power);
+                        cout << power << endl;
+                        joint_task2->_kp = 800.0 * (power + 1);
+                        joint_task2->_kv = 40.0;
+//                        posori_task2->_kp_ori =  40.0 * (power + 1);
+//                        posori_task2->_kv_ori = 4.0;
+                        cout << joint_task2->_kp << endl;
                     }
                     else {
                          // set shooting gesture
@@ -470,11 +483,12 @@ int main() {
                             q_init_desired2 *= M_PI/180.0;
                         } // three shooting modes
 
-                        if (sleep_counter < 2000) {
+                        if (sleep_counter < 300) {
 //                            if (sleep_counter == 0) cout << "oh\n" << endl;
                             sleep_counter++;
                             }
                         else {
+                            cout << "shooter shoot"<< endl;
                             shooter_state = SHOOTER_SHOOT;
                             sleep_counter = 0;
 //                            cout << "my\ngod\n" << endl;
@@ -482,6 +496,7 @@ int main() {
                     }
                 }
                 else if (shooter_state == SHOOTER_SHOOT){
+//                    cout << joint_task2->_kp << endl;
                     joint_task2->_desired_position = q_init_desired2;
                     N_prec2.setIdentity();
                     joint_task2->updateTaskModel(N_prec2);
@@ -490,8 +505,9 @@ int main() {
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
+                        cout << "shooter reset"<< endl;
                         shooter_state = SHOOTER_RESET;
-                        // todo: predict_future.key = "1"
+                        redis_client.set(PREDICTION_READY_KEY, "1");
                         hoop_state = HOOP_MOVE;
                     }
                 }
@@ -509,7 +525,9 @@ int main() {
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
+                        cout << "shooter idle"<< endl;
                         shooter_state = SHOOTER_IDLE;
+                        redis_client.set(SHOOTER_READY_KEY, "1");
                     }
                 }
 
