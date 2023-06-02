@@ -182,7 +182,7 @@ def on_keydown(event):
     if event.char == 'r':
         wind_scale = random.random() * 5
         wind_angle = random.random() * math.pi * 2
-        gravityVec = [- wind_scale * math.sin(wind_angle), - wind_scale * math.cos(wind_angle), -9.81]
+        gravityVec = [- wind_scale * math.sin(wind_angle) * 10, - wind_scale * math.cos(wind_angle) * 10, -9.81]
         print(gravityVec)
         r.set(GRAVITY_KEY, str(gravityVec))
         arrow_length = 75

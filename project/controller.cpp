@@ -40,6 +40,10 @@ const string robot2_file = "./resources/kuka_iiwa.urdf";
 
 unsigned long long controller_counter = 0;
 
+VectorXd q_init_desired2(7); //initial joint space for kuka
+// get shooting angle from redis
+std::string shooting_angle;
+
 const bool inertia_regularization = true;
 
 // define three robot states
@@ -245,13 +249,11 @@ int main() {
                 // get shooter mode from redis
                 std::string mode;
                 mode = redis_client.get(SHOOTER_MODE);
-                if (mode != pre_mode) {
-                 cout << mode << endl;  //cout the mode only once
-                 pre_mode = mode;
-                 }
-                VectorXd q_init_desired2(dof2); //initial joint space for kuka
-                // get shooting angle from redis
-                std::string shooting_angle;
+//                if (mode != pre_mode) {
+//                     // cout << mode << endl;  //cout the mode only once
+//                     pre_mode = mode;
+//                 }
+
                 shooting_angle = redis_client.get(SHOOTING_ANGLE);
                 int angle = stof(shooting_angle); //transfer to integer
 
@@ -285,7 +287,7 @@ int main() {
                     command_torques = joint_task_torques;
 
                     if ((robot->_q - _q_init_desired).norm() < 0.05){
-                        cout << "POSTURE GOT!"<< endl;
+//                        cout << "POSTURE GOT!"<< endl;
                         joint_task ->reInitializeTask();
                         posori_task ->reInitializeTask();
                         // system("pause");
@@ -321,7 +323,7 @@ int main() {
 
                     if ( (ee_pos - x_init_desired).norm() < 0.015) {
 
-                        cout << "Robot Initialized" << endl;
+//                        cout << "Robot Initialized" << endl;
                         base_task->reInitializeTask();
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
@@ -329,7 +331,6 @@ int main() {
 
                         // reset the basketball
                         redis_client.set(RESET_KEY, "1");
-                        // todo: function to be added to reset the ball;
 
                         hoop_state = HOOP_IDLE;
                         //controller_status = "0";
@@ -388,7 +389,7 @@ int main() {
                     command_torques = posori_task_torques + base_task_torques + arm_joint_task_torques;
 
                     if ( (ee_pos - x_desired).norm() < 0.015) {
-                        cout << "Goal Reached" << endl;
+//                        cout << "Goal Reached" << endl;
                         base_task->reInitializeTask();
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
@@ -420,24 +421,24 @@ int main() {
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     // detect if the ball is reseted in the hand
-//                   if ((robot2->_q - q_init_desired2).norm() < 0.05 && shooter_force_sensor != 0){
-//                        cout << "shooter reset"<< endl;
-//                        joint_task2 ->reInitializeTask();
-//                        posori_task2 ->reInitializeTask();
-//                        shooter_state = SHOOTER_SET;
-//                    }
+                    if ((robot2->_q - q_init_desired2).norm() < 0.05 && redis_client.get(BALL_READY_KEY) == "1"){
+                        cout << "shooter reset"<< endl;
+                        joint_task2 ->reInitializeTask();
+                        posori_task2 ->reInitializeTask();
+                        shooter_state = SHOOTER_SET;
+                    }
                 }
 
                 else if (shooter_state == SHOOTER_SET){
 
                     // set the shooting angle for shooter
-                    q_init_desired2 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-                    q_init_desired2(0) = angle; //getting the shooting angle
-                    q_init_desired2 *= M_PI/180.0;
+                    VectorXd q_init_desired_2 = VectorXd::Zero(dof2);
+                    q_init_desired_2(0) = angle; //getting the shooting angle
+                    q_init_desired_2 *= M_PI/180.0;
                     if (hoop_state != HOOP_IDLE && (robot2 -> _q - q_init_desired2).norm() > 0.0001){
 
                         // turn the first angle
-                        joint_task2->_desired_position = q_init_desired2;
+                        joint_task2->_desired_position = q_init_desired_2;
                         N_prec2.setIdentity();
                         joint_task2->updateTaskModel(N_prec2);
                         joint_task2->computeTorques(joint_task_torques2);
@@ -456,15 +457,19 @@ int main() {
                          // set shooting gesture
                         if (mode == "straight") {
                             q_init_desired2 << angle, 30.0, 0.0, -30.0, 0.0, 10.0, 0.0;
+                            cout << q_init_desired2.transpose() << endl;
                         }
 
                         else if (mode == "low_arc") {
                             q_init_desired2 << angle, 25.0, 0.0, -25.0, 0.0, 20.0, 0.0;
+                            cout << q_init_desired2.transpose() << endl;
                         }
 
                         else if (mode == "high_arc") {
                             q_init_desired2 << angle, 20.0, 0.0, -20.0, 0.0, 30.0, 0.0;
+                            cout << q_init_desired2.transpose() << endl;
                         } // three shooting modes
+
                         if (sleep_counter < 2000) {
 //                            if (sleep_counter == 0) cout << "oh\n" << endl;
                             sleep_counter++;
@@ -477,7 +482,6 @@ int main() {
                     }
                 }
                 else if (shooter_state == SHOOTER_SHOOT){
-
                     q_init_desired2 *= M_PI/180.0;
                     joint_task2->_desired_position = q_init_desired2;
                     N_prec2.setIdentity();
@@ -487,6 +491,7 @@ int main() {
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
+                        cout << q_init_desired2.transpose() << "\t" << robot2 -> _q.transpose() << endl;
                         shooter_state = SHOOTER_RESET;
                         // todo: predict_future.key = "1"
                         hoop_state = HOOP_MOVE;

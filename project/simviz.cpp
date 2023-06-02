@@ -547,6 +547,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 		sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
 //		cout << "gravity:" << "\t" << graVec.transpose() << endl;
 
+        // read the gravity
+        chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+        Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+//        cout << gra_g.transpose() << endl;
+
         if (true) {
             // run simulation loop when (1) control loop is done or (2) there is user force input
             // apply gravity compensation
@@ -567,9 +572,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             // get forces from interactive screen
             ui_force_widget->getUIForce(ui_force);
             ui_force_widget->getUIJointTorques(ui_force_command_torques);
-
-            // add sensed force
-//            sensed_force
 
             sim->setJointTorques(robot_name, command_torques + g);
 
@@ -621,9 +623,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 
             // update force sensor readings
             force_sensor->update(sim);
-            force_sensor->getForceLocalFrame(sensed_force);  // refer to ForceSensorSim.h in sai2-common/src/force_sensor (can also get wrt global frame)
-            force_sensor->getMomentLocalFrame(sensed_moment);
-            // std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
+            force_sensor->getForce(sensed_force);  // refer to ForceSensorSim.h in sai2-common/src/force_sensor (can also get wrt global frame)
+            force_sensor->getMoment(sensed_moment);
+            if (abs(sensed_force(2)) > 0.6) redis_client.set(BALL_READY_KEY, "1");
+            else redis_client.set(BALL_READY_KEY, "0");
+//            if (counter % 1200 == 0) std::cout << counter << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
 
             // calculate future pos
 //            if (flag == 0 && curr_time - pred_start_time >= 1.59 && curr_time - pred_start_time <= 1.6) {
