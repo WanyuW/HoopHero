@@ -55,6 +55,16 @@ vector<Quaterniond> object_ori;
 vector<Vector3d> object_ang_vel;
 const int n_objects = object_names.size();
 
+// ball's info
+Vector3d curr_pos;
+Vector3d object_future_pos;
+Vector3d curr_lin_vel;
+MatrixXd object_Jv = MatrixXd::Zero(3,6);
+string object_ee_link = "link6";
+Vector3d object_ee_point = Vector3d(0, 0, 0);
+VectorXd object_acc(6);
+Vector3d object_lin_acc;
+
 // force sensor
 ForceSensorSim* force_sensor;
 
@@ -67,7 +77,8 @@ RedisClient redis_client_test;
 
 /* Edited functions from collision demo */
 // simulation thread
-void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget);
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object,
+                Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget, Sai2Graphics::Sai2Graphics* graphics);
 
 /* added functions from collision demo */
 // function for converting string to bool
@@ -98,7 +109,8 @@ bool cameraFOV(Vector3d object_pos, Vector3d camera_pos, Matrix3d camera_ori, do
 bool compareSigns(double a, double b);
 
 // predict the future position for the obj
-Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_duration, double curr_time, Simulation::Sai2Simulation* sim);
+Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc,
+                        double time_duration, double curr_time, Sai2Model::Sai2Model* object);
 
 // set dynamic object velocity - added by WWY
 void setObjectVel(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
@@ -184,7 +196,7 @@ int main() {
     T_world_object.linear() = R_world_object;
 
     auto object = new Sai2Model::Sai2Model(obj_file, false, T_world_object);
-    object->_q(1) = 2.5;
+    // object->_q(1) = 2.5;
     object->updateModel();
 
 	// load simulation world
@@ -270,11 +282,12 @@ int main() {
     redis_client.set(SHOOTER_READY_KEY, "0");
     redis_client.set(BALL_READY_KEY, "0");
     redis_client.set(PREDICTION_READY_KEY, "0");
+    redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
 //    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 //    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
 	// start simulation thread
-	thread sim_thread(simulation, robot, robot2, object, sim, ui_force_widget);
+	thread sim_thread(simulation, robot, robot2, object, sim, ui_force_widget, graphics);
 
 	// initialize glew
 	glewInitialize();
@@ -291,21 +304,29 @@ int main() {
 	{
 		// add sphere for every nth count
 		if (count % 120 == 0) {  // default refresh rate
-//            string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
-//            addMesh(graphics, mesh_filename, start_pos, Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
-////			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
-////			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
-//			start_pos(1) += 1e-1;
 
             // get world gravity
             chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
             Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
 //            cout << "gravity: " << gra_g.transpose() << "\n";
 
-//            auto test = redis_client_test.get(RESET_KEY);
-//            cout << "reset: " << test << "\n";
+//            object->Jv(object_Jv, object_ee_link, object_ee_point);
+//            object->positionInWorld(curr_pos, object_ee_link, object_ee_point);
+//            sim->getJointVelocities(obj_name, curr_dq);
+//            curr_lin_vel = object_Jv * curr_dq;
+//            cout << "curr_vel_in_world:" << curr_lin_vel.transpose() << endl;
+//            cout << "current position" << curr_pos.transpose() << endl;
 
 		}
+
+		// get ball's info
+		object->positionInWorld(curr_pos, object_ee_link, object_ee_point);
+		object->Jv(object_Jv, object_ee_link, object_ee_point);
+        curr_lin_vel = object_Jv * object->_dq;
+        object->acceleration6dInWorld(object_acc, object_ee_link, object_ee_point);
+        object_lin_acc(0) = object_acc(0);
+        object_lin_acc(1) = object_acc(1);
+        object_lin_acc(2) = object_acc(2);
 
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
@@ -441,7 +462,8 @@ int main() {
 
 //------------------------------------------------------------------------------
 
-void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget)
+void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object,
+                Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget, Sai2Graphics::Sai2Graphics* graphics)
 {
 	// prepare simulation
 	int dof = robot->dof();
@@ -508,6 +530,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 	redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
     redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
     redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
+    redis_client.addEigenToWriteCallback(0, FUTURE_POS, object_future_pos);
 //	redis_client.addEigenToWriteCallback(0, BALL_POS, object_pos[0]);
 //	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS_INWORLD, ee_pos_shooter_inworld);
 
@@ -596,7 +619,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 VectorXd reset_ball_pos = object->_q;
                 VectorXd reset_ball_vel = VectorXd::Zero(dof_obj);
                 reset_ball_pos(0) = 0.0;
-                reset_ball_pos(1) = 0.0;
+                reset_ball_pos(1) = -2.5;
                 reset_ball_pos(2) = 0.0;
                 sim->setJointPositions(obj_name, reset_ball_pos);
                 sim->setJointVelocities(obj_name, reset_ball_vel);
@@ -622,30 +645,24 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             }
             else redis_client.set(BALL_READY_KEY, "0");
             if (counter % 1200 == 0) {
-                std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose();
-                std::cout << sensed_force.norm() << endl;
+//                std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose();
+//                std::cout << sensed_force.norm() << endl;
             }
+
+            // print ball's info todo: delete, this is only for debug
+//            object->positionInWorld(curr_pos, object_ee_link, object_ee_point);
+//            object->Jv(object_Jv, object_ee_link, object_ee_point);
+//            curr_lin_vel = object_Jv * object->_dq;
+//              cout << "curr_vel_in_world:" << curr_lin_vel.transpose() << endl;
+//              cout << "current position" << curr_pos.transpose() << endl;
 
             // calculate future pos
             if (redis_client.get(PREDICTION_READY_KEY) == "1") {
-                double time_duration = 0.1;
-                Vector3d object_future_pos;
-                Vector3d curr_pos;
-                Vector3d curr_lin_vel;
-                VectorXd curr_q(dof_obj);
-                VectorXd curr_dq(dof_obj);
-                MatrixXd object_Jv = MatrixXd::Zero(3,dof_obj);
-                string object_ee_link = "link6";
-                Vector3d object_ee_point = Vector3d(0, 0, 0);
-
-                object->Jv(object_Jv, object_ee_link, object_ee_point);
-                sim->getJointPositions(obj_name, curr_q);
-                curr_pos(0) = curr_q(0);
-                curr_pos(1) = curr_q(1);
-                curr_pos(2) = curr_q(2);
-                sim->getJointVelocities(obj_name, curr_dq);
-                curr_lin_vel = object_Jv * curr_dq;
-                object_future_pos = posPrediction(curr_pos, curr_lin_vel, time_duration, curr_time, sim);
+//                double time_duration = 0.8;
+                double time_duration = 0.9;
+                object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, time_duration, curr_time, object);
+                string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
+                addMesh(graphics, mesh_filename, object_future_pos, Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
             }
 
             // query object position and ee pos/ori for camera detection
@@ -794,22 +811,39 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 
 //------------------------------------------------------------------------------
 
-Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, double time_duration, double curr_time, Simulation::Sai2Simulation* sim)
+Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc, double time_duration, double curr_time, Sai2Model::Sai2Model* object)
 {
     // create the future position vector
     Vector3d object_future_pos;
+//    VectorXd object_acc(6);
+//    Vector3d object_lin_acc;
     // read the gravity
-    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
-    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-    cout << gra_g.transpose() << endl;
+//    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+//    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+    Vector3d gra_g;
+    gra_g(0) = 0;
+    gra_g(1) = 0;
+    gra_g(2) = -9.81;
+//    cout << gra_g.transpose() << endl;
+//string object_ee_link = "link6";
+//Vector3d object_ee_point = Vector3d(0, 0, 0);
+//    object->acceleration6dInWorld(object_acc, object_ee_link, object_ee_point);
+//    object_lin_acc(0) = object_acc(0);
+//    object_lin_acc(1) = object_acc(1);
+//    object_lin_acc(2) = object_acc(2);
     // calculate and print out
     object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
-    object_future_pos(1) = object_future_pos(1) - 2.5;
-    object_future_pos(2) = object_future_pos(2) + 1.2;
+//    object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * object_lin_acc * time_duration * time_duration;
+    object_future_pos(1) = object_future_pos(1);
+    object_future_pos(2) = object_future_pos(2) + 1.06;
 
     if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
     cout << "current position" << endl;
     cout << curr_time << '\t' << curr_pos.transpose() << endl;
+    cout << "current velocity:" << endl;
+    cout << curr_time << '\t' << curr_lin_vel.transpose() << endl;
+    cout << "current acc:" << endl;
+    cout << curr_time << '\t' << object_acc.transpose() << endl;
     cout << "future position" << endl;
     cout << curr_time + time_duration << '\t' << object_future_pos.transpose() << endl;
     redis_client.set(PREDICTION_READY_KEY, "0");
