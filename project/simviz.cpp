@@ -209,11 +209,11 @@ int main() {
 	}
 
     // set co-efficient of restition to zero for force control
-    sim->setCollisionRestitution(0.2);
+    sim->setCollisionRestitution(0.0);
 
     // set co-efficient of friction - this causes jitter
-    sim->setCoeffFrictionStatic(0.5);
-    sim->setCoeffFrictionDynamic(0.5);
+    sim->setCoeffFrictionStatic(0.0);
+    sim->setCoeffFrictionDynamic(0.2);
 
     // initialize force sensor: needs Sai2Simulation sim interface type
     force_sensor = new ForceSensorSim(robot2_name, sensor_link_name, Eigen::Affine3d::Identity(), robot2);
@@ -596,7 +596,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 VectorXd reset_ball_pos = object->_q;
                 VectorXd reset_ball_vel = VectorXd::Zero(dof_obj);
                 reset_ball_pos(0) = 0.0;
-                reset_ball_pos(1) = 0.0;
+                reset_ball_pos(1) = 0.1;
                 reset_ball_pos(2) = 0.0;
                 sim->setJointPositions(obj_name, reset_ball_pos);
                 sim->setJointVelocities(obj_name, reset_ball_vel);

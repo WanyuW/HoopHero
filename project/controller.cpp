@@ -458,15 +458,22 @@ int main() {
 
                         // set shooter power to k
 //                        shooter_power = redis_client.get(SHOOTER_POWER);
-                        float power = stof(shooter_power);
-                        cout << power << endl;
-                        joint_task2->_kp = 800.0 * (power + 1);
-                        joint_task2->_kv = 40.0;
-//                        posori_task2->_kp_ori =  40.0 * (power + 1);
-//                        posori_task2->_kv_ori = 4.0;
-                        cout << joint_task2->_kp << endl;
+//                        float power = stof(shooter_power);
+//                        cout << power << endl;
+//                        joint_task2->_kp = 800.0 * (power + 1);
+//                        joint_task2->_kv = 40.0;
+////                        posori_task2->_kp_ori =  40.0 * (power + 1);
+////                        posori_task2->_kv_ori = 4.0;
+//                        cout << joint_task2->_kp << endl;
                     }
                     else {
+
+                        float power = stof(shooter_power);
+                        cout << power << endl;
+                        joint_task2->_kp = 50.0 * (power + 1);
+                        joint_task2->_kv = 15.0;
+                        cout << joint_task2->_kp << endl;
+
                          // set shooting gesture
                         if (mode == "straight") {
                             q_init_desired2 << angle, 30.0, 0.0, -30.0, 0.0, 10.0, 0.0;
