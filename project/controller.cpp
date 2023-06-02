@@ -457,17 +457,17 @@ int main() {
                          // set shooting gesture
                         if (mode == "straight") {
                             q_init_desired2 << angle, 30.0, 0.0, -30.0, 0.0, 10.0, 0.0;
-                            cout << q_init_desired2.transpose() << endl;
+                            q_init_desired2 *= M_PI/180.0;
                         }
 
                         else if (mode == "low_arc") {
                             q_init_desired2 << angle, 25.0, 0.0, -25.0, 0.0, 20.0, 0.0;
-                            cout << q_init_desired2.transpose() << endl;
+                            q_init_desired2 *= M_PI/180.0;
                         }
 
                         else if (mode == "high_arc") {
                             q_init_desired2 << angle, 20.0, 0.0, -20.0, 0.0, 30.0, 0.0;
-                            cout << q_init_desired2.transpose() << endl;
+                            q_init_desired2 *= M_PI/180.0;
                         } // three shooting modes
 
                         if (sleep_counter < 2000) {
@@ -482,7 +482,6 @@ int main() {
                     }
                 }
                 else if (shooter_state == SHOOTER_SHOOT){
-                    q_init_desired2 *= M_PI/180.0;
                     joint_task2->_desired_position = q_init_desired2;
                     N_prec2.setIdentity();
                     joint_task2->updateTaskModel(N_prec2);
@@ -491,7 +490,6 @@ int main() {
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
                     if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
-                        cout << q_init_desired2.transpose() << "\t" << robot2 -> _q.transpose() << endl;
                         shooter_state = SHOOTER_RESET;
                         // todo: predict_future.key = "1"
                         hoop_state = HOOP_MOVE;
