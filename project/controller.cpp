@@ -107,10 +107,10 @@ int main() {
 	const Vector3d control_point = Vector3d(0, 0, 0);
 	auto posori_task = new Sai2Primitives::PosOriTask(robot, control_link, control_point);
 
-	posori_task->_use_interpolation_flag = true;
-	posori_task->_use_velocity_saturation_flag = false;
+	posori_task->_use_interpolation_flag = false;
+	posori_task->_use_velocity_saturation_flag = true;
 	posori_task->_otg->setMaxLinearVelocity(1000);
-	posori_task->_linear_saturation_velocity = 2;
+	posori_task->_linear_saturation_velocity = 20;
 
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
 	posori_task->_kp_pos = 400.0;
@@ -145,8 +145,8 @@ int main() {
 
 	// partial joint task to control the mobile base
 	auto joint_task = new Sai2Primitives::JointTask(robot);
-	joint_task -> _use_interpolation_flag = true;
-	joint_task -> _use_velocity_saturation_flag = true;
+	joint_task -> _use_interpolation_flag = false;
+	joint_task -> _use_velocity_saturation_flag = false;
 
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
 	joint_task -> _kp = 400.0;
@@ -169,7 +169,7 @@ int main() {
 	// joint (posture) task
 	vector<int> arm_joint_selection{3, 4, 5, 6, 7, 8, 9};
 	auto arm_joint_task = new Sai2Primitives::PartialJointTask(robot, arm_joint_selection);
-	arm_joint_task->_use_interpolation_flag = true;
+	arm_joint_task->_use_interpolation_flag = false;
 
 	VectorXd arm_joint_task_torques = VectorXd::Zero(dof);
 	arm_joint_task->_kp = 100;
@@ -273,8 +273,8 @@ int main() {
                 robot->updateModel();
                 robot2->updateModel();
                 robot->position(ee_pos, control_link, control_point);
-                base_pose_init_desired(0) = ee_pos(0) - 0.1; // make the base follow the arm
-                base_pose_init_desired(1) = ee_pos(1) - 0.1; // offset between the base and the arm
+                base_pose_init_desired(0) = ee_pos(0); // make the base follow the arm
+                base_pose_init_desired(1) = ee_pos(1); // offset between the base and the arm
 
                 //get future position of the basketball
 //                Vector3d future_position;
@@ -309,6 +309,9 @@ int main() {
                     x_init_desired(1) = 0;
                     x_init_desired(2) = 0.9; // initial position
 
+                    posori_task->_use_interpolation_flag = true;
+                    posori_task->_otg->setMaxLinearVelocity(5000);
+
                     posori_task->_desired_position = x_init_desired;
                     base_task->_desired_position = base_pose_init_desired;
                     arm_joint_task->_desired_position = q_init_desired;
@@ -337,7 +340,7 @@ int main() {
                         // reset the basketball
                         if (redis_client.get(SHOOTER_READY_KEY) == "1") {
                             cout << "hoop_idle" << '\n';
-                            redis_client.set(RESET_KEY, "1");
+                            //redis_client.set(RESET_KEY, "1");
                             hoop_state = HOOP_IDLE;
                             //controller_status = "0";
                         }
@@ -348,7 +351,7 @@ int main() {
                     // setting idle position for hoop
                     x_desired(0) = 0;
                     x_desired(1) = 0;
-                    x_desired(2) = 0.9;
+                    x_desired(2) = 1;
 
                     posori_task->_desired_position = x_desired;
                     base_task->_desired_position = base_pose_init_desired;
@@ -385,17 +388,22 @@ int main() {
 //                    cout << "x_desire: " << x_desired.transpose() << endl;
 //                    cout << "ee_pos_inworld: " << ee_pos_inworld.transpose() << endl;
 
+                    posori_task->_use_interpolation_flag = false;
+
                     posori_task->_desired_position = x_desired;
                     base_task->_desired_position = base_pose_init_desired;
                     arm_joint_task->_desired_position = q_init_desired;
+
 
                     // update task model and set hierarchy
                     N_prec.setIdentity();
                     posori_task->updateTaskModel(N_prec);
                     N_prec = posori_task->_N;
-                    base_task->updateTaskModel(N_prec);
-                    N_prec = base_task->_N;
                     arm_joint_task->updateTaskModel(N_prec);
+                    N_prec = arm_joint_task->_N;
+                    base_task->updateTaskModel(N_prec);
+//                    N_prec = base_task->_N;
+//                    arm_joint_task->updateTaskModel(N_prec);
 
                     // compute torques
                     posori_task->computeTorques(posori_task_torques);
@@ -474,23 +482,26 @@ int main() {
                     else {
                         float power = stof(shooter_power);
 //                        cout << power << endl;
-                        joint_task2->_kp = 160.0 + 20 * power;
+//                        joint_task2->_kp = 165.0 + 15 * power;
                         joint_task2->_kv = 20.0;
 
                          // set shooting gesture
                         if (mode == "straight") {
                             q_init_desired2 << angle, 30.0, 0.0, -30.0, 0.0, 10.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
+                            joint_task2->_kp = 165.0 + 15 * power;
                         }
 
                         else if (mode == "low_arc") {
                             q_init_desired2 << angle, 25.0, 0.0, -25.0, 0.0, 20.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
+                            joint_task2->_kp = 165.0 + 15 * power;
                         }
 
                         else if (mode == "high_arc") {
-                            q_init_desired2 << angle, 20.0, 0.0, -20.0, 0.0, 30.0, 0.0;
+                            q_init_desired2 << angle, 15, 0.0, -20.0, 0.0, 25.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
+                            joint_task2->_kp = 285.0 + 15 * power;
                         } // three shooting modes
 
                         if (sleep_counter < 1000) {
