@@ -6,6 +6,7 @@ import subprocess
 import math
 import os
 import signal
+import screeninfo
 
 # importing libraries for interface
 import tkinter as tk
@@ -258,6 +259,7 @@ def mouse_click(event):
     if (event.x - 175) ** 2 + (event.y - 125) ** 2 <= 200 * 200:
         # Create a new window
         window = ctk.CTkToplevel(app)
+
         window.geometry("250x150")
         window.title("Shooting angle editor")
 
@@ -328,9 +330,20 @@ def main():
     # interface template
     ctk.set_appearance_mode("dark")  # Modes: system (default), light, dark
     ctk.set_default_color_theme("customized_theme.json")
+    # ctk.set_widget_scaling(0.5)  # widget dimensions and text size
+    # ctk.set_window_scaling(0.5)  # window geometry dimensions
     # ctk.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
 
-    app = ctk.CTk()  # create CTk window like you do with the Tk window
+    app = ctk.CTk()
+    # Get the screen width and height
+    screen_width = app.winfo_screenwidth()
+    screen_height = app.winfo_screenheight()
+
+    # Calculate the x and y coordinates for centering the window
+
+    # Set the window position
+    # app.geometry(geo)
+
     app.geometry("1440x750")
     app.title("HoopHero")
 
@@ -380,8 +393,8 @@ def main():
     preview_label.place(relx=0.05, rely=0.05, anchor=tk.W)
     # use canvas
     # wind module
-    wind_canvas = tk.Canvas(app, width=350, height=300, background="gray16", highlightthickness=0)
-    wind_canvas.place(relx=0.28, rely=0.7, anchor=tk.CENTER)
+    wind_canvas = ctk.CTkCanvas(preview_frame, width=350, height=300, background="gray16", highlightthickness=0)
+    wind_canvas.place(relx=0.22, rely=0.55, anchor=tk.CENTER)
     wind_image = Image.open("wind.png")
     wind_image = wind_image.resize((200, 200), Image.LANCZOS)  # Resize the image to fit the window
     wind_photo = ImageTk.PhotoImage(wind_image)  # Create a Tkinter-compatible photo image from the PIL image
@@ -394,8 +407,8 @@ def main():
                                         fill="gray84")
 
     # angle module
-    angle_canvas = tk.Canvas(app, width=350, height=300, background="gray16", highlightthickness=0)
-    angle_canvas.place(relx=0.72, rely=0.7, anchor=tk.CENTER)
+    angle_canvas = ctk.CTkCanvas(preview_frame, width=350, height=300, background="gray16", highlightthickness=0)
+    angle_canvas.place(relx=0.78, rely=0.55, anchor=tk.CENTER)
     angle_image = Image.open("angle.png")
     angle_image = angle_image.resize((200, 200), Image.LANCZOS)  # Resize the image to fit the window
     angle_photo = ImageTk.PhotoImage(angle_image)  # Create a Tkinter-compatible photo image from the PIL image
