@@ -114,9 +114,9 @@ int main() {
 
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
 	posori_task->_kp_pos = 400.0;
-	posori_task->_kv_pos = 40.0;
+	posori_task->_kv_pos = 100.0;
 	posori_task->_kp_ori = 400.0;
-	posori_task->_kv_ori = 40.0;
+	posori_task->_kv_ori = 100.0;
 
 	//kuka pose task
 	const string control_link2 = "link6";
