@@ -474,7 +474,7 @@ int main() {
                     else {
                         float power = stof(shooter_power);
 //                        cout << power << endl;
-                        joint_task2->_kp = 100.0 * (power + 1);
+                        joint_task2->_kp = 130.0 + 20 * power;
                         joint_task2->_kv = 20.0;
 
                          // set shooting gesture
