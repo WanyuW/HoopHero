@@ -76,7 +76,7 @@ def run():
     simviz_process = subprocess.Popen(["./simviz"])
     # simviz_pid = simviz_process.pid
 
-    time.sleep(3)
+    time.sleep(4)
 
     r.set(GAME_STATE, "1")
     # print(r.get(GAME_STATE).decode())
