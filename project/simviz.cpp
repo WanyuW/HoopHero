@@ -221,7 +221,7 @@ int main() {
 	}
 
     // set co-efficient of restition to zero for force control
-    sim->setCollisionRestitution(0.5);
+    sim->setCollisionRestitution(0.8);
 
     // set co-efficient of friction - this causes jitter
     sim->setCoeffFrictionStatic(0.5);
@@ -245,10 +245,10 @@ int main() {
 	// information about computer screen and GLUT display window
 	int screenW = mode->width;
 	int screenH = mode->height;
-	int windowW = 0.8 * screenH;
+	int windowW = 1440;
 	int windowH = 0.6 * screenH;
 	int windowPosY = (screenH - windowH) / 2;
-	int windowPosX = windowPosY;
+	int windowPosX = (screenW - windowW) / 2;
 
 	// create window and make it current
 	glfwWindowHint(GLFW_VISIBLE, 0);
@@ -662,7 +662,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 //                double time_duration = 0.9;
                 object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object);
                 string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
-                //addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
+                addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
             }
 
             // query object position and ee pos/ori for camera detection
@@ -828,7 +828,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object
     // calculate and print out
     double time_step = 0.001;
     double time_duration = 0.001;
-    for (int time_counter = 0; time_counter < 1500; time_counter++){
+    for (int time_counter = 0; time_counter < 1800; time_counter++){
         time_duration += time_counter * time_step;
         object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
         object_future_vel << curr_lin_vel + gra_g * time_duration;

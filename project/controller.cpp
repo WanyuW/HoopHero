@@ -393,7 +393,7 @@ int main() {
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                        if (sleep_counter < 1000) {
+                        if (sleep_counter < 2000) {
                             sleep_counter++;
                             }
                         else {
@@ -454,21 +454,21 @@ int main() {
 
                          // set shooting gesture and corresponding gains
                         if (mode == "straight") {
-                            q_init_desired2 << angle, 30.0, 0.0, -30.0, 0.0, 45.0, 0.0;
+                            q_init_desired2 << angle, 50.0, 0.0, -30.0, 0.0, 75.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
-                            joint_task2->_kp = 165.0 + 15 * power;
+                            joint_task2->_kp = 90.0 + 25 * power;
                         }
 
                         else if (mode == "low_arc") {
-                            q_init_desired2 << angle, 15.0, 0.0, -25.0, 0.0, 15.0, 0.0;
+                            q_init_desired2 << angle, 15.0, 0.0, -25.0, 0.0, 25.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
-                            joint_task2->_kp = 365.0 + 15 * power;
+                            joint_task2->_kp = 285.0 + 55 * power;
                         }
 
                         else if (mode == "high_arc") {
-                            q_init_desired2 << angle, 0.0, 0.0, -40.0, 0.0, 5.0, 0.0;
+                            q_init_desired2 << angle, 0.0, 0.0, -40.0, 0.0, 0.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
-                            joint_task2->_kp = 585.0 + 15 * power;
+                            joint_task2->_kp = 450 + 100 * power;
                         } // three shooting modes
 
                         // wait for a while
