@@ -491,7 +491,7 @@ int main() {
                     command_torques2 = joint_task_torques2;
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
-                    if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
+                    if ((robot2 -> _q - q_init_desired2).norm() < 0.25){
                         cout << "shooter reset"<< endl;
                         shooter_state = SHOOTER_RESET;
                         redis_client.set(PREDICTION_READY_KEY, "1");
