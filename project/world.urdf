@@ -22,16 +22,16 @@
 	    <visual>
 	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 3.1415926" />
 	        <geometry>
-                <mesh filename="../../model/mmp_panda/meshes/visual/court.obj" scale = "1 1 1" />
+                <mesh filename="../../model/mmp_panda/meshes/visual/court_rev4.obj" scale = "1 1 1" />
 	        </geometry>
 	    </visual>
 
-<!--		<collision>-->
-<!--	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />-->
-<!--	        <geometry>-->
-<!--	            <box size="11 7 0.08" />-->
-<!--	        </geometry>-->
-<!--	    </collision>-->
+		<collision>
+	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
+	        <geometry>
+	            <box size="11 7 0.08" />
+	        </geometry>
+	    </collision>
 	</static_object>
     
 <!--    <static_object name="ball_top">-->

@@ -221,15 +221,15 @@ int main() {
 	}
 
     // set co-efficient of restition to zero for force control
-    sim->setCollisionRestitution(0.0);
+    sim->setCollisionRestitution(0.5);
 
     // set co-efficient of friction - this causes jitter
-    sim->setCoeffFrictionStatic(0.0);
-    sim->setCoeffFrictionDynamic(0.2);
+    sim->setCoeffFrictionStatic(0.5);
+    sim->setCoeffFrictionDynamic(0.5);
 
     // initialize force sensor: needs Sai2Simulation sim interface type
     force_sensor = new ForceSensorSim(robot2_name, sensor_link_name, Eigen::Affine3d::Identity(), robot2);
-    force_display = new ForceSensorDisplay(force_sensor, graphics);
+    //force_display = new ForceSensorDisplay(force_sensor, graphics);
 
 	/*------- Set up visualization -------*/
 	// set up error callback
@@ -337,7 +337,7 @@ int main() {
 		for (int i = 0; i < n_objects; ++i) {
 			graphics->updateObjectGraphics(object_names[i], object_pos[i], object_ori[i]);
 		}
-		force_display->update();
+		//force_display->update();
 		graphics->render(camera_name, width, height);
 
 		// swap buffers
@@ -538,7 +538,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 	LoopTimer timer;
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000);
-	double time_slowdown_factor = 0.5;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
+	double time_slowdown_factor = 2;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
 	bool fTimerDidSleep = true;
 	double start_time = timer.elapsedTime() / time_slowdown_factor; // secs
 	double last_time = start_time;
@@ -619,7 +619,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 VectorXd reset_ball_pos = object->_q;
                 VectorXd reset_ball_vel = VectorXd::Zero(dof_obj);
                 reset_ball_pos(0) = 0.0;
-                reset_ball_pos(1) = -2.2;
+                reset_ball_pos(1) = -2.3;
                 reset_ball_pos(2) = 0.0;
                 sim->setJointPositions(obj_name, reset_ball_pos);
                 sim->setJointVelocities(obj_name, reset_ball_vel);
@@ -662,7 +662,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 //                double time_duration = 0.9;
                 object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object);
                 string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
-                addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
+                //addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
             }
 
             // query object position and ee pos/ori for camera detection
