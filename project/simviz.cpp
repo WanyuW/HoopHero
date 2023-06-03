@@ -110,7 +110,7 @@ bool compareSigns(double a, double b);
 
 // predict the future position for the obj
 Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc,
-                        double time_duration, double curr_time, Sai2Model::Sai2Model* object);
+                       double curr_time, Sai2Model::Sai2Model* object);
 
 // set dynamic object velocity - added by WWY
 void setObjectVel(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
@@ -659,8 +659,8 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             // calculate future pos
             if (redis_client.get(PREDICTION_READY_KEY) == "1") {
 //                double time_duration = 0.8;
-                double time_duration = 0.9;
-                object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, time_duration, curr_time, object);
+//                double time_duration = 0.9;
+                object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object);
                 string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
                 addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
             }
@@ -811,12 +811,11 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 
 //------------------------------------------------------------------------------
 
-Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc, double time_duration, double curr_time, Sai2Model::Sai2Model* object)
+Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc, double curr_time, Sai2Model::Sai2Model* object)
 {
     // create the future position vector
     Vector3d object_future_pos;
-//    VectorXd object_acc(6);
-//    Vector3d object_lin_acc;
+    Vector3d object_future_vel;
     // read the gravity
 //    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
 //    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
@@ -825,27 +824,30 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object
     gra_g(1) = 0;
     gra_g(2) = -9.81;
 //    cout << gra_g.transpose() << endl;
-//string object_ee_link = "link6";
-//Vector3d object_ee_point = Vector3d(0, 0, 0);
-//    object->acceleration6dInWorld(object_acc, object_ee_link, object_ee_point);
-//    object_lin_acc(0) = object_acc(0);
-//    object_lin_acc(1) = object_acc(1);
-//    object_lin_acc(2) = object_acc(2);
+
     // calculate and print out
-    object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
+    double time_step = 0.001;
+    double time_duration = 0.001;
+    for (int time_counter = 0; time_counter < 1500; time_counter++){
+        time_duration += time_counter * time_step;
+        object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
+        object_future_vel << curr_lin_vel + gra_g * time_duration;
+
+        if ((object_future_vel(2) < 0) && object_future_pos(1) > 0.1 && (object_future_pos(2) > -0.41) && (object_future_pos(2) < 0.09)) {
+            cout << object_future_pos.transpose() << endl;
+            break;
+        }
+    }
 //    object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * object_lin_acc * time_duration * time_duration;
-    object_future_pos(1) = object_future_pos(1);
     object_future_pos(2) = object_future_pos(2) + 1.06;
 
-    if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
-    cout << "current position" << endl;
-    cout << curr_time << '\t' << curr_pos.transpose() << endl;
-    cout << "current velocity:" << endl;
-    cout << curr_time << '\t' << curr_lin_vel.transpose() << endl;
-    cout << "current acc:" << endl;
-    cout << curr_time << '\t' << object_acc.transpose() << endl;
+//    if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
+    cout << "current position: ";
+    cout << curr_time << "s: " << '\t' << curr_pos.transpose() << endl;
+    cout << "current velocity:";
+    cout << curr_time << "s: " << '\t' << curr_lin_vel.transpose() << endl;
     cout << "future position" << endl;
-    cout << curr_time + time_duration << '\t' << object_future_pos.transpose() << endl;
+    cout << time_duration << "s: " << '\t' << object_future_pos.transpose() << endl;
     redis_client.set(PREDICTION_READY_KEY, "0");
     redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
     return object_future_pos;

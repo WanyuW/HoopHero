@@ -376,14 +376,14 @@ int main() {
 //                    x_desired(1) = 0;
 //                    x_desired(2) = 0; // todo: need to change this to the predicted position
                     future_position = redis_client.getEigenMatrixJSON(FUTURE_POS);
-                    cout << future_position.transpose() << endl;
+//                    cout << future_position.transpose() << endl;
                     x_desired(0) = 5 - future_position(1) - 0.15;
                     x_desired(1) = future_position(0) - 0.01;
                     x_desired(2) = future_position(2) - 0.15;
                     Vector3d ee_pos_inworld;
                     robot->positionInWorld(ee_pos_inworld, "link7");
-                    cout << "x_desire: " << x_desired.transpose() << endl;
-                    cout << "ee_pos_inworld: " << ee_pos_inworld.transpose() << endl;
+//                    cout << "x_desire: " << x_desired.transpose() << endl;
+//                    cout << "ee_pos_inworld: " << ee_pos_inworld.transpose() << endl;
 
                     posori_task->_desired_position = x_desired;
                     base_task->_desired_position = base_pose_init_desired;
@@ -474,7 +474,7 @@ int main() {
                     else {
                         float power = stof(shooter_power);
 //                        cout << power << endl;
-                        joint_task2->_kp = 130.0 + 20 * power;
+                        joint_task2->_kp = 160.0 + 20 * power;
                         joint_task2->_kv = 20.0;
 
                          // set shooting gesture
