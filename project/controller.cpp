@@ -444,11 +444,21 @@ int main() {
                     ball_shoot_ready = redis_client.get(BALL_SHOOT_READY_KEY);
                     float delta;
                     delta = stof(j0_increment);
-                    while ((j_0 > -20.0) && (j_0 < 20)){
-                        j_0 += delta;
+                    if (abs(delta) >= 0.05) {
+                        if ((j_0 > -20.0) && (j_0 < 20)){
+                            j_0 += delta;
+                        }
+                        else if ((j_0 <= -20.0) && delta >= 0) {
+                            j_0 += delta;
+                        }
+                        else if ((j_0 >= 20.0) && delta <= 0) {
+                            j_0 += delta;
+                        }
                     }
+                    cout << j_0 << endl;
+                    cout << ball_shoot_ready << endl;
                     q_init_desired_2(0) = j_0;
-                    q_init_desired_2(0) = angle; //getting the shooting angle
+//                    q_init_desired_2(0) = angle; //getting the shooting angle
                     q_init_desired_2 *= M_PI/180.0;
 
                     if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.05)){
