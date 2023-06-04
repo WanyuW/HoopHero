@@ -6,7 +6,6 @@ import subprocess
 import math
 import os
 import signal
-import screeninfo
 
 # importing libraries for interface
 import tkinter as tk
@@ -77,6 +76,8 @@ def run():
     # Launch the joystick_controller.py script
     joystick_process = subprocess.Popen(["python3", "joystick_controller.py"])
 
+    time.sleep(2)
+
     simviz_process = subprocess.Popen(["./simviz"])
     # simviz_pid = simviz_process.pid
 
@@ -140,6 +141,10 @@ def check_redis_keys(keys, app):
     # Retrieve the updated Redis keys using appropriate Redis commands
     global wind_canvas, wind_line, wind_text
     global angle_canvas, angle_line, angle_text
+    global power
+    global switch1
+    global switch2
+    global switch3
 
     for key, value in keys.items():
         if r.exists(key):
@@ -148,7 +153,7 @@ def check_redis_keys(keys, app):
                 keys[key] = value.decode()
 
     # Process the retrieved keys and update your application state
-    shooting_angle = int(r.get(SHOOTING_ANGLE))  # takes in degrees
+    shooting_angle = int(float(r.get(SHOOTING_ANGLE)))  # takes in degrees
     shooting_radian = math.radians(shooting_angle)
     arrow_length = 75
     angle_canvas.delete(angle_line)
@@ -165,6 +170,18 @@ def check_redis_keys(keys, app):
         print(r.get(RUN_KEY))
         run()
         r.set(RUN_KEY, "0")
+
+    power_progress = r.get(SHOOTER_POWER).decode()
+    power.set(float(power_progress))
+    power.update()
+
+    shooter_mode = r.get(SHOOTER_MODE).decode()
+    if shooter_mode == 'low_arc':
+        switch_event2()
+    elif shooter_mode == 'high_arc':
+        switch_event3()
+    else:
+        switch_event1()
 
     # Schedule the next Redis key retrieval after a certain interval
     app.after(10, check_redis_keys, keys, app)  # Adjust the interval as needed
@@ -283,7 +300,7 @@ def mouse_click(event):
             global angle_canvas, angle_line, angle_text
 
             # Process the retrieved keys and update your application state
-            shooting_angle = int(r.get(SHOOTING_ANGLE))  # takes in degrees
+            shooting_angle = int(r.get(SHOOTING_ANGLE).decode())  # takes in degrees
             shooting_radian = math.radians(shooting_angle)
             arrow_length = 75
             angle_canvas.delete(angle_line)
@@ -464,7 +481,7 @@ def main():
     app.bind('<KeyRelease>', on_keyup)
 
     # Bind the mouse click event to handle_mouse_click
-    angle_canvas.bind("<Button-1>", mouse_click)
+    # angle_canvas.bind("<Button-1>", mouse_click)
 
     app.mainloop()
 

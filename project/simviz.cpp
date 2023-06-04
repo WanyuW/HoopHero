@@ -283,6 +283,7 @@ int main() {
     redis_client.set(BALL_READY_KEY, "0");
     redis_client.set(PREDICTION_READY_KEY, "0");
     redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
+    redis_client.set(SHOOTING_ANGLE, "0");
 //    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 //    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
@@ -829,8 +830,8 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object
     Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
 //    Vector3d gra_g;
     cout << "read gravity: " << gra_g.transpose() << endl;
-    gra_g(0) *= 0.000001;
-    gra_g(1) *= 0.000001;
+//    gra_g(0) *= 0.000001;
+//    gra_g(1) *= 0.000001;
 
     // calculate and print out
     double time_step = 0.001;

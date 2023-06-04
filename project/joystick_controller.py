@@ -32,7 +32,6 @@ def main():
                 power_input = float(joystick.get_axis(5))
                 power = 0.5 * power_input + 0.5
                 r.set(SHOOTER_POWER, str(power))
-                print(power)
 
             elif event.type == pygame.JOYBUTTONDOWN:
                 # Handle button press

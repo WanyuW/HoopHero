@@ -444,19 +444,20 @@ int main() {
                     float delta;
                     delta = stof(j0_increment);
                     delta = delta / 50;
-                    if (abs(delta) >= 0.1) {
+                    if (abs(delta * 50) >= 0.1) {
                         if ((j_0 > -20.0) && (j_0 < 20)){
                             j_0 += delta;
+                            redis_client.set(SHOOTING_ANGLE, to_string(j_0));
                         }
                         else if ((j_0 <= -20.0) && delta >= 0) {
                             j_0 += delta;
+                            redis_client.set(SHOOTING_ANGLE, to_string(j_0));
                         }
                         else if ((j_0 >= 20.0) && delta <= 0) {
                             j_0 += delta;
+                            redis_client.set(SHOOTING_ANGLE, to_string(j_0));
                         }
                     }
-                    cout << j_0 << endl;
-                    cout << ball_shoot_ready << endl;
                     q_init_desired_2(0) = j_0;
 //                    q_init_desired_2(0) = angle; //getting the shooting angle
                     q_init_desired_2 *= M_PI/180.0;
@@ -544,6 +545,7 @@ int main() {
                     if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
                         cout << "Shooter Idle"<< endl;
                         shooter_state = SHOOTER_IDLE;
+                        j_0 = 0;
                         redis_client.set(SHOOTER_READY_KEY, "1");
                     }
                 }
