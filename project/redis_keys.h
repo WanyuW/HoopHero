@@ -49,3 +49,8 @@ const std::string EE_MOMENT_KEY = "cs225a::sensor::moment";
 const std::string BALL_READY_KEY = "sai2::sim::ball_ready";
 const std::string SHOOTER_READY_KEY = "sai2::sim::shooter_ready";
 const std::string PREDICTION_READY_KEY = "sai2::sim::prediction_ready";
+
+const std::string SHOOTER_MOVE = "sai2::shooter::joint_0_increment";
+const std::string BALL_SHOOT_READY_KEY = "sai2::sim::basketball_shoot_ready";
+const std::string SHOOTER_SET_STATE = "sai2::shooter::set_state";
+

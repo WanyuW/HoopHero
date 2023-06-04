@@ -114,9 +114,9 @@ int main() {
 
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
 	posori_task->_kp_pos = 400.0;
-	posori_task->_kv_pos = 100.0;
+	posori_task->_kv_pos = 40.0;
 	posori_task->_kp_ori = 400.0;
-	posori_task->_kv_ori = 100.0;
+	posori_task->_kv_ori = 40.0;
 
 	//kuka pose task
 	const string control_link2 = "link6";
@@ -233,6 +233,11 @@ int main() {
 
         std::string reset;
         reset = redis_client.get(RESET_KEY);
+
+        std::string ball_shoot_ready;
+        ball_shoot_ready = "0";
+
+        float j_0 = 0.0; //shooter joint 0
 
         while (runloop) {
 
@@ -360,7 +365,7 @@ int main() {
                     // set desired position as the ball future position with some offsets
                     x_desired(0) = 5 - future_position(1) - 0.15;
                     x_desired(1) = future_position(0) - 0.01;
-                    x_desired(2) = future_position(2) - 0.15;
+                    x_desired(2) = future_position(2) - 0.08; // adjusted to catch the ball
                     Vector3d ee_pos_inworld;
                     robot->positionInWorld(ee_pos_inworld, "link7");
 
@@ -426,16 +431,27 @@ int main() {
                         shooter_state = SHOOTER_SET;
                         redis_client.set(SHOOTER_READY_KEY, "0");
                         redis_client.set(BALL_READY_KEY, "0");
+                        redis_client.set(SHOOTER_SET_STATE, "1");
                     }
                 }
                 else if (shooter_state == SHOOTER_SET){
 
                     // set the shooting angle for shooter
                     VectorXd q_init_desired_2 = VectorXd::Zero(dof2);
+
+                    std:string j0_increment;
+                    j0_increment = redis_client.get(SHOOTER_MOVE);
+                    ball_shoot_ready = redis_client.get(BALL_SHOOT_READY_KEY);
+                    float delta;
+                    delta = stof(j0_increment);
+                    while ((j_0 > -20.0) && (j_0 < 20)){
+                        j_0 += delta;
+                    }
+                    q_init_desired_2(0) = j_0;
                     q_init_desired_2(0) = angle; //getting the shooting angle
                     q_init_desired_2 *= M_PI/180.0;
-                    if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.05)){
 
+                    if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.05)){
                         // turn the first angle with lower gains
                         joint_task2->_kp = 20.0;
                         joint_task2->_kv = 10.0;
@@ -445,7 +461,6 @@ int main() {
                         joint_task2->computeTorques(joint_task_torques2);
                         command_torques2 = joint_task_torques2;
                         robot2->position(ee_pos_shooter, control_link2, control_point2);
-
                     }
                     else {
                         float power = stof(shooter_power);
@@ -476,9 +491,12 @@ int main() {
                             sleep_counter++;
                             }
                         else {
-                            cout << "Shooter Shoot"<< endl;
-                            shooter_state = SHOOTER_SHOOT;
-                            sleep_counter = 0;
+                            if (ball_shoot_ready == "1") {
+                                cout << "Shooter Shoot"<< endl;
+                                shooter_state = SHOOTER_SHOOT;
+                                sleep_counter = 0;
+                                redis_client.set(SHOOTER_SET_STATE, "0");
+                            }
                         }
                     }
                 }
@@ -491,7 +509,7 @@ int main() {
                     command_torques2 = joint_task_torques2;
                     robot2->position(ee_pos_shooter, control_link2, control_point2);
 
-                    if ((robot2 -> _q - q_init_desired2).norm() < 0.25){
+                    if ((robot2 -> _q - q_init_desired2).norm() < 0.015){
                         cout << "shooter reset"<< endl;
                         shooter_state = SHOOTER_RESET;
                         redis_client.set(PREDICTION_READY_KEY, "1");
