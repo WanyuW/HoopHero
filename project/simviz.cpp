@@ -110,7 +110,7 @@ bool compareSigns(double a, double b);
 
 // predict the future position for the obj
 Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc,
-                       double curr_time, Sai2Model::Sai2Model* object);
+                       double curr_time, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim);
 
 // set dynamic object velocity - added by WWY
 void setObjectVel(const std::string& object_name, const Eigen::Vector3d& lin_vel, const Eigen::Vector3d& ang_vel,
@@ -308,7 +308,7 @@ int main() {
             // get world gravity
             chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
             Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-//            cout << "gravity: " << gra_g.transpose() << "\n";
+            cout << "gravity: " << gra_g.transpose() << "\n";
 
 //            object->Jv(object_Jv, object_ee_link, object_ee_point);
 //            object->positionInWorld(curr_pos, object_ee_link, object_ee_point);
@@ -538,7 +538,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 	LoopTimer timer;
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000);
-	double time_slowdown_factor = 2;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
+	double time_slowdown_factor = 3;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
 	bool fTimerDidSleep = true;
 	double start_time = timer.elapsedTime() / time_slowdown_factor; // secs
 	double last_time = start_time;
@@ -560,7 +560,14 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 		// chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
         // Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
 		sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
-//		cout << "gravity:" << "\t" << graVec.transpose() << endl;
+        VectorXd wind_torques(6);
+        Vector3d wind_force(3);
+        wind_force(0) = graVec(0) * 0.1;
+        wind_force(1) = graVec(1) * 0.1;
+        object->Jv(object_Jv, object_ee_link, object_ee_point);
+        wind_torques = - object_Jv.transpose() * wind_force;
+        sim->setJointTorques(obj_name, wind_torques);
+//        cout << "gravity:" << "\t" << graVec.transpose() << endl;
 
         // read the gravity
         chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
@@ -660,7 +667,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             if (redis_client.get(PREDICTION_READY_KEY) == "1") {
 //                double time_duration = 0.8;
 //                double time_duration = 0.9;
-                object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object);
+                object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object, sim);
                 string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
                 addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
             }
@@ -811,19 +818,19 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 
 //------------------------------------------------------------------------------
 
-Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc, double curr_time, Sai2Model::Sai2Model* object)
+Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc, double curr_time,
+                        Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim)
 {
     // create the future position vector
     Vector3d object_future_pos;
     Vector3d object_future_vel;
     // read the gravity
-//    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
-//    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-    Vector3d gra_g;
-    gra_g(0) = 0;
-    gra_g(1) = 0;
-    gra_g(2) = -9.81;
-//    cout << gra_g.transpose() << endl;
+    chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+    Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
+//    Vector3d gra_g;
+    cout << "read gravity: " << gra_g.transpose() << endl;
+    gra_g(0) *= 0.000001;
+    gra_g(1) *= 0.000001;
 
     // calculate and print out
     double time_step = 0.001;
