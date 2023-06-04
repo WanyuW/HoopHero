@@ -412,6 +412,8 @@ int main() {
                 if (shooter_state == SHOOTER_IDLE){
 
                     // set the shooter to initial position
+                    joint_task2->_kv = 40;
+                    joint_task2->_kp = 250;
                     q_init_desired2 *= 0;
                     q_init_desired2 *= M_PI/180.0;
                     joint_task2->_desired_position = q_init_desired2;
@@ -482,7 +484,7 @@ int main() {
                         if (mode == "straight") {
                             q_init_desired2 << j_0, 50.0, 0.0, -30.0, 0.0, 75.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
-                            joint_task2->_kp = 90.0 + 25 * power;
+                            joint_task2->_kp = 100.0 + 25 * power;
                         }
 
                         else if (mode == "low_arc") {
@@ -535,6 +537,8 @@ int main() {
                     q_init_desired2 *= 0;
                     q_init_desired2(0) = j_0;
                     q_init_desired2 *= M_PI/180.0;
+                    joint_task2->_kv = 40;
+                    joint_task2->_kp = 250;
                     joint_task2->_desired_position = q_init_desired2;
                     N_prec2.setIdentity();
                     joint_task2->updateTaskModel(N_prec2);
