@@ -670,7 +670,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 //                double time_duration = 0.9;
                 object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object, sim);
                 string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
-                addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
+//                addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
             }
 
             // query object position and ee pos/ori for camera detection
