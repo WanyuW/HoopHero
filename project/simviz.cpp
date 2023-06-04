@@ -840,7 +840,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object
         object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * gra_g * time_duration * time_duration;
         object_future_vel << curr_lin_vel + gra_g * time_duration;
 
-        if ((object_future_vel(2) < 0) && object_future_pos(1) > 0.1 && (object_future_pos(2) > -0.41) && (object_future_pos(2) < 0.09)) {
+        if ((object_future_vel(2) < 0) && object_future_pos(1) > 0.1 && (object_future_pos(2) > -0.34) && (object_future_pos(2) < 0.02)) {
             cout << object_future_pos.transpose() << endl;
             break;
         }

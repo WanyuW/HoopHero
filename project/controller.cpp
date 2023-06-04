@@ -108,7 +108,7 @@ int main() {
 	auto posori_task = new Sai2Primitives::PosOriTask(robot, control_link, control_point);
 
 	posori_task->_use_interpolation_flag = false;
-	posori_task->_use_velocity_saturation_flag = true;
+	posori_task->_use_velocity_saturation_flag = false;
 	posori_task->_otg->setMaxLinearVelocity(1000);
 	posori_task->_linear_saturation_velocity = 20;
 
@@ -236,8 +236,7 @@ int main() {
 
         std::string ball_shoot_ready;
         ball_shoot_ready = "0";
-
-        float j_0 = 0.0; //shooter joint 0
+        float j_0; //shooter joint 0
 
         while (runloop) {
 
@@ -444,7 +443,8 @@ int main() {
                     ball_shoot_ready = redis_client.get(BALL_SHOOT_READY_KEY);
                     float delta;
                     delta = stof(j0_increment);
-                    if (abs(delta) >= 0.05) {
+                    delta = delta / 50;
+                    if (abs(delta) >= 0.1) {
                         if ((j_0 > -20.0) && (j_0 < 20)){
                             j_0 += delta;
                         }
@@ -463,8 +463,8 @@ int main() {
 
                     if ((hoop_state != HOOP_IDLE) || ((robot2 -> _q - q_init_desired_2).norm() > 0.05)){
                         // turn the first angle with lower gains
-                        joint_task2->_kp = 20.0;
-                        joint_task2->_kv = 10.0;
+                        joint_task2->_kp = 100.0;
+                        joint_task2->_kv = 20.0;
                         joint_task2->_desired_position = q_init_desired_2;
                         N_prec2.setIdentity();
                         joint_task2->updateTaskModel(N_prec2);
@@ -479,19 +479,19 @@ int main() {
 
                          // set shooting gesture and corresponding gains
                         if (mode == "straight") {
-                            q_init_desired2 << angle, 50.0, 0.0, -30.0, 0.0, 75.0, 0.0;
+                            q_init_desired2 << j_0, 50.0, 0.0, -30.0, 0.0, 75.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
                             joint_task2->_kp = 90.0 + 25 * power;
                         }
 
                         else if (mode == "low_arc") {
-                            q_init_desired2 << angle, 15.0, 0.0, -25.0, 0.0, 25.0, 0.0;
+                            q_init_desired2 << j_0, 15.0, 0.0, -25.0, 0.0, 25.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
                             joint_task2->_kp = 285.0 + 55 * power;
                         }
 
                         else if (mode == "high_arc") {
-                            q_init_desired2 << angle, 0.0, 0.0, -40.0, 0.0, 0.0, 0.0;
+                            q_init_desired2 << j_0, 0.0, 0.0, -40.0, 0.0, 0.0, 0.0;
                             q_init_desired2 *= M_PI/180.0;
                             joint_task2->_kp = 450 + 100 * power;
                         } // three shooting modes
@@ -523,6 +523,7 @@ int main() {
                         cout << "shooter reset"<< endl;
                         shooter_state = SHOOTER_RESET;
                         redis_client.set(PREDICTION_READY_KEY, "1");
+                        redis_client.set(BALL_SHOOT_READY_KEY, "0");
                         cout << "Hoop Move" << endl;
                         hoop_state = HOOP_MOVE;
                     }
@@ -531,7 +532,7 @@ int main() {
 
                     // shooter back to initial position
                     q_init_desired2 *= 0;
-                    q_init_desired2(0) = angle;
+                    q_init_desired2(0) = j_0;
                     q_init_desired2 *= M_PI/180.0;
                     joint_task2->_desired_position = q_init_desired2;
                     N_prec2.setIdentity();

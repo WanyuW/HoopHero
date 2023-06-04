@@ -74,6 +74,9 @@ power_counter = 0
 
 
 def run():
+    # Launch the joystick_controller.py script
+    joystick_process = subprocess.Popen(["python3", "joystick_controller.py"])
+
     simviz_process = subprocess.Popen(["./simviz"])
     # simviz_pid = simviz_process.pid
 
@@ -91,6 +94,8 @@ def run():
         launch_process.terminate()
         launch_process.wait()
         print("Controller terminated")
+        joystick_process.terminate()
+        joystick_process.wait()
         exit(0)
 
     # Set the signal handler
