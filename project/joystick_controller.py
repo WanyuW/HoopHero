@@ -48,6 +48,8 @@ def main():
                 elif event.button == 3:
                     r.set(SHOOTER_MODE, "straight")
                     print("straight")
+                elif event.button == 10:
+                    r.set(RESET_KEY, "1")
 
     # Clean up resources and exit
     pygame.joystick.quit()

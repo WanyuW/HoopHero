@@ -245,10 +245,10 @@ int main() {
 	// information about computer screen and GLUT display window
 	int screenW = mode->width;
 	int screenH = mode->height;
-	int windowW = 1440;
-	int windowH = 0.6 * screenH;
-	int windowPosY = (screenH - windowH) / 2;
-	int windowPosX = (screenW - windowW) / 2;
+	int windowW = 0.5 * screenW;
+	int windowH = 0.4 * screenH;
+	int windowPosY = 0.6 * screenH;
+	int windowPosX = 0.5 * screenW;
 
 	// create window and make it current
 	glfwWindowHint(GLFW_VISIBLE, 0);
