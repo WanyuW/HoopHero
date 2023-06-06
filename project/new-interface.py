@@ -221,7 +221,7 @@ def launch_function():
 
 def main():
     pygame.mixer.init()
-    pygame.mixer.music.load("bgm.mp3")
+    pygame.mixer.music.load("bgm2.mp3")
     pygame.mixer.music.play(-1)
     # declaim the global var
     global app
