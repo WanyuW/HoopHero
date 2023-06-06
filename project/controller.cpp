@@ -321,11 +321,12 @@ int main() {
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
 
+                        cout << "hoop_idle" << '\n';
+                        hoop_state = HOOP_IDLE;
+
                         // reset the basketball
-                        if (redis_client.get(SHOOTER_READY_KEY) == "1") {
-                            cout << "hoop_idle" << '\n';
+                        if (redis_client.get(FALLING_KEY) == "0" && shooter_state == SHOOTER_IDLE) {
                             redis_client.set(RESET_KEY, "1");
-                            hoop_state = HOOP_IDLE;
                             //controller_status = "0";
                         }
                     }
@@ -550,6 +551,7 @@ int main() {
                         cout << "Shooter Idle"<< endl;
                         shooter_state = SHOOTER_IDLE;
                         j_0 = 0;
+                        redis_client.set(SHOOTING_ANGLE, "0");
                         redis_client.set(SHOOTER_READY_KEY, "1");
                     }
                 }

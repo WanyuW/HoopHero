@@ -18,6 +18,7 @@ SHOOTING_ANGLE = "sai2::shooter::shooting_angle"
 SHOOTER_EE_POS_INWORLD = "sai2::shooter::ee_pos_inworld"
 SHOOTER_MOVE = "sai2::shooter::joint_0_increment"
 SHOOTER_SET_STATE = "sai2::shooter::set_state"
+SHOOTER_READY_KEY = "sai2::sim::shooter_ready";
 
 # ball's info
 BALL_POS = "sai2::sim::basketball_pos"
@@ -29,3 +30,5 @@ BALL_SHOOT_READY_KEY = "sai2::sim::basketball_shoot_ready"
 GAME_STATE = "sai2::game_state"
 RESET_KEY = "sai2::sim::reset"
 RUN_KEY = "sim::run"
+PRESS_START_KEY = "sim::start"
+CONTINUE_KEY = "sim::continue"

@@ -69,14 +69,11 @@ angle_label = None
 shooting_angle_input = ""
 launch_button = None
 power_counter = 0
+joystick_process = None
 
 
 def run():
-    # Launch the joystick_controller.py script
-    joystick_process = subprocess.Popen(["python3", "joystick_controller.py"])
-
-    time.sleep(2)
-
+    global joystick_process
     simviz_process = subprocess.Popen(["./simviz"])
     # simviz_pid = simviz_process.pid
 
@@ -112,6 +109,7 @@ def button_function():
     # print(r.get(GAME_STATE).decode())
 
     r.set(RUN_KEY, "1")
+    r.set(CONTINUE_KEY, "1")
 
 def intro_button_function():
     global app
@@ -119,6 +117,7 @@ def intro_button_function():
     global intro_frame
     start_frame.place_forget()  # remove login frame
     intro_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
+    r.set(PRESS_START_KEY, "1")
 
 
 def check_redis_keys(keys, app):
@@ -166,21 +165,15 @@ def check_redis_keys(keys, app):
         switch_event1()
 
     # Schedule the next Redis key retrieval after a certain interval
-    app.after(10, check_redis_keys, keys, app)  # Adjust the interval as needed
+    app.after(1, check_redis_keys, keys, app)  # Adjust the interval as needed
 
 
 def on_keydown(event):
-    global start_time
-    global time_flag
-    global power_counter
-    global power
     if event.char == ' ':
-        power_counter += 1
-        # print(start_time)
-        power_progress = power_counter / 50
-        power.set(power_progress)
-        r.set(SHOOTER_POWER, str(power_progress))
-        power.update()
+        if r.get(PRESS_START_KEY).decode() == '0':
+            intro_button_function()
+        elif r.get(CONTINUE_KEY).decode() == '0':
+            button_function()
 
 
 def on_keyup(event):
@@ -251,13 +244,19 @@ def main():
     global main_frame
     global angle_canvas, angle_line, angle_text, angle_label
     global intro_frame
+    global joystick_process
 
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
     r.set(SHOOTER_MODE, "straight")
     r.set(SHOOTING_ANGLE, "0")
     r.set(GRAVITY_KEY, str([0.0, 0.0, -9.81]))
+    r.set(PRESS_START_KEY, "0")
+    r.set(CONTINUE_KEY, "0")
     # r.set(RESET_KEY, "0")
+
+    # Launch the joystick_controller.py script
+    joystick_process = subprocess.Popen(["python3", "joystick_controller.py"])
 
     # interface template
     ctk.set_appearance_mode("dark")  # Modes: system (default), light, dark
@@ -332,7 +331,7 @@ def main():
     # main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # set the background image
-    app.bg_image = ctk.CTkImage(Image.open("1.jpg"), size=(1980, 1020))
+    app.bg_image = ctk.CTkImage(Image.open("1.png"), size=(1980, 1020))
     app.bg_image_label = ctk.CTkLabel(start_frame, text=" ", image=app.bg_image)
     app.bg_image_label.grid(row=0, column=0)
 

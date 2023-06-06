@@ -11,6 +11,7 @@ r = redis.Redis()
 r.set(SHOOTER_MOVE, "0")
 r.set(BALL_SHOOT_READY_KEY, "0")
 r.set(SHOOTER_SET_STATE, "1")
+r.set(SHOOTER_READY_KEY, "1")
 
 # Set up the gamepad
 if pygame.joystick.get_count() > 0:
@@ -42,6 +43,8 @@ def main():
                     if r.get(SHOOTER_SET_STATE).decode() == "1":
                         r.set(BALL_SHOOT_READY_KEY, "1")
                         print("ball's ready to be shot")
+                        # Vibrate the controller for 1 second
+                        # joystick.set_vibration(1.0, 1.0, 1000)
                 elif event.button == 2:
                     r.set(SHOOTER_MODE, "low_arc")
                     print("low_arc")
@@ -49,7 +52,8 @@ def main():
                     r.set(SHOOTER_MODE, "straight")
                     print("straight")
                 elif event.button == 10:
-                    r.set(RESET_KEY, "1")
+                    if r.get(SHOOTER_READY_KEY).decode() == '1':
+                        r.set(RESET_KEY, "1")
 
     # Clean up resources and exit
     pygame.joystick.quit()

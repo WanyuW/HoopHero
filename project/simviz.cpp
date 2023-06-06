@@ -632,6 +632,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 sim->setJointPositions(obj_name, reset_ball_pos);
                 sim->setJointVelocities(obj_name, reset_ball_vel);
                 redis_client.set(RESET_KEY, "0");
+                redis_client.set(FALLING_KEY, "1");
             }
             sim->getJointPositions(obj_name, object->_q);
             sim->getJointVelocities(obj_name, object->_dq);
@@ -649,6 +650,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             force_sensor->getMoment(sensed_moment);
             if (sensed_force.norm() > 0.6) {
                 redis_client.set(BALL_READY_KEY, "1");
+                redis_client.set(FALLING_KEY, "0");
 //                cout << redis_client_test.get(BALL_READY_KEY) << endl;
             }
             else redis_client.set(BALL_READY_KEY, "0");
