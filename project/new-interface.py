@@ -1,10 +1,7 @@
-import random
-
 import redis
 import time
 import subprocess
 import math
-import os
 import signal
 
 # importing libraries for interface
@@ -106,7 +103,6 @@ def button_function():
     intro_frame.place_forget()  # remove login frame
     print("pressed")
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
-    # print(r.get(GAME_STATE).decode())
 
     r.set(RUN_KEY, "1")
     r.set(CONTINUE_KEY, "1")
@@ -176,19 +172,6 @@ def on_keydown(event):
             button_function()
 
 
-def on_keyup(event):
-    global end_time
-    global start_time
-    global time_flag
-    global power_counter
-    if event.char == 'a':
-        power_counter = 0
-        power_progress = power_counter / 50
-        power.set(power_progress)
-        r.set(SHOOTER_POWER, str(power_progress))
-        power.update()
-
-
 def switch_event1():
     global mode_var
     global switch1
@@ -199,7 +182,6 @@ def switch_event1():
     switch3.deselect()
     mode_var = ctk.StringVar(value="0")
     r.set(SHOOTER_MODE, "straight")
-    # print("switch toggled, current value:", mode_var.get(), r.get(SHOOTER_MODE).decode())
 
 
 def switch_event2():
@@ -212,7 +194,6 @@ def switch_event2():
     switch3.deselect()
     mode_var = ctk.StringVar(value="1")
     r.set(SHOOTER_MODE, "low_arc")
-    # print("switch toggled, current value:", mode_var.get(), r.get(SHOOTER_MODE).decode())
 
 
 def switch_event3():
@@ -225,7 +206,6 @@ def switch_event3():
     switch3.select()
     mode_var = ctk.StringVar(value="2")
     r.set(SHOOTER_MODE, "high_arc")
-    # print("switch toggled, current value:", mode_var.get(), r.get(SHOOTER_MODE).decode())
 
 
 def launch_function():
@@ -246,6 +226,7 @@ def main():
     global intro_frame
     global joystick_process
 
+    # init keys
     r.set(SHOOTER_POWER, "0.5")
     r.set(GAME_STATE, "0")
     r.set(SHOOTER_MODE, "straight")
@@ -253,7 +234,6 @@ def main():
     r.set(GRAVITY_KEY, str([0.0, 0.0, -9.81]))
     r.set(PRESS_START_KEY, "0")
     r.set(CONTINUE_KEY, "0")
-    # r.set(RESET_KEY, "0")
 
     # Launch the joystick_controller.py script
     joystick_process = subprocess.Popen(["python3", "joystick_controller.py"])
@@ -263,24 +243,14 @@ def main():
     ctk.set_default_color_theme("customized_theme.json")
     ctk.set_widget_scaling(0.5)  # widget dimensions and text size
     ctk.set_window_scaling(0.5)  # window geometry dimensions
-    # ctk.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
 
     app = ctk.CTk()
-    # Get the screen width and height
-    screen_width = app.winfo_screenwidth()
-    screen_height = app.winfo_screenheight()
-
-    # Calculate the x and y coordinates for centering the window
-
-    # Set the window position
-    # app.geometry(geo)
 
     app.geometry("1980x1020+0+0")
     app.title("HoopHero")
 
     # create main frame
     main_frame = ctk.CTkFrame(app, corner_radius=0)
-    # main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # set the background image
     app.bg_image = ctk.CTkImage(Image.open("11.png"), size=(1980, 1020))
@@ -305,7 +275,6 @@ def main():
                             variable=mode_var, onvalue="high_arc", switch_width=140, switch_height=55, border_width=5, border_color='#3a301e')
     switch3.place(relx=0.71, rely=0.375, anchor=tk.W)
     switch1.select()
-    # r.set(SHOOTER_MODE, "straight")
 
     # angle module
     angle_canvas = ctk.CTkCanvas(main_frame, width=150, height=150, background="#2e1b5b", highlightthickness=0)
@@ -328,7 +297,6 @@ def main():
     # create start frame
     start_frame = ctk.CTkFrame(app, corner_radius=0)
     start_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-    # main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # set the background image
     app.bg_image = ctk.CTkImage(Image.open("1.png"), size=(1980, 1020))
@@ -343,7 +311,6 @@ def main():
 
     # create introduction frame
     intro_frame = ctk.CTkFrame(app, corner_radius=0)
-    # intro_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # set the intro image
     app.intro_image = ctk.CTkImage(Image.open("2.png"), size=(1980, 1020))
@@ -360,11 +327,6 @@ def main():
     check_redis_keys(KEYS, app)
 
     app.bind('<KeyPress>', on_keydown)
-    app.bind('<KeyRelease>', on_keyup)
-
-    # Bind the mouse click event to handle_mouse_click
-    # angle_canvas.bind("<Button-1>", mouse_click)
-
     app.mainloop()
 
 

@@ -20,8 +20,6 @@
 #include <iostream>
 
 // flags for simulation and controller states
-//bool fSimulationLoopDone = false;
-//bool fControllerLoopDone = true; // initialize as true for first loop
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
 
@@ -45,15 +43,6 @@ const string sensor_link_name = "link7";
 // basketball - please work
 const string obj_file = "./resources/ball.urdf";
 const string obj_name = "ball";
-
-// dynamic objects information
-//const vector<string> object_names = {"basketball"};
-const vector<string> object_names;
-vector<Vector3d> object_pos;
-vector<Vector3d> object_lin_vel;
-vector<Quaterniond> object_ori;
-vector<Vector3d> object_ang_vel;
-const int n_objects = object_names.size();
 
 // ball's info
 Vector3d curr_pos;
@@ -80,14 +69,6 @@ RedisClient redis_client_test;
 void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object,
                 Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget, Sai2Graphics::Sai2Graphics* graphics);
 
-/* added functions from collision demo */
-// function for converting string to bool
-bool string_to_bool(const std::string& x);
-
-/* added functions from collision demo */
-// function for converting bool to string
-inline const char * const bool_to_string(bool b);
-
 // callback to print glfw errors
 void glfwError(int error, const char* description);
 
@@ -99,14 +80,6 @@ void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // callback when a mouse button is pressed
 void mouseClick(GLFWwindow* window, int button, int action, int mods);
-
-/* added functions from collision demo */
-// callback boolean check for objects in camera FOV
-bool cameraFOV(Vector3d object_pos, Vector3d camera_pos, Matrix3d camera_ori, double radius, double fov_angle);
-
-/* added functions from collision demo */
-// helper function for cameraFOV
-bool compareSigns(double a, double b);
 
 // predict the future position for the obj
 Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object_lin_acc,
@@ -154,17 +127,12 @@ int main() {
 	/* added from collision demo */
     Eigen::Vector3d robot_offset = Eigen::Vector3d(0.0, 0.0, 0.0);
     Eigen::Matrix3d R_world_robot = Eigen::Matrix3d::Identity();
-    // Eigen::Matrix3d R_world_robot = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ())
-    //                                 * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
-    //                                 * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX());
 
     Eigen::Affine3d T_world_robot = Eigen::Affine3d::Identity();
     T_world_robot.translation() = robot_offset;
     T_world_robot.linear() = R_world_robot;
 
 	auto robot = new Sai2Model::Sai2Model(robot_file, false, T_world_robot);
-//    robot->_q = VectorXd::Zero(10);
-//    robot->_dq = VectorXd::Zero(10);
 	robot->updateModel();
     robot->updateKinematics();
     
@@ -172,9 +140,6 @@ int main() {
     /* added from collision demo */
     Eigen::Vector3d robot2_offset = Eigen::Vector3d(0.0, 0.0, 0.0);
     Eigen::Matrix3d R_world_robot2 = Eigen::Matrix3d::Identity();
-    // Eigen::Matrix3d R_world_robot2 = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ())
-    //                                 * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
-    //                                 * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX());
 
     Eigen::Affine3d T_world_robot2 = Eigen::Affine3d::Identity();
     T_world_robot2.translation() = robot2_offset;
@@ -187,9 +152,6 @@ int main() {
     // load robot objects
     Eigen::Vector3d object_offset = Eigen::Vector3d(0.0, 0.0, 0.0);
     Eigen::Matrix3d R_world_object = Eigen::Matrix3d::Identity();
-    // Eigen::Matrix3d R_world_object = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX())
-    //                                  * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
-    //                                  * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
 
     Eigen::Affine3d T_world_object = Eigen::Affine3d::Identity();
     T_world_object.translation() = object_offset;
@@ -206,19 +168,6 @@ int main() {
 	sim->setJointPositions(robot2_name, robot2->_q);
 	sim->setJointVelocities(robot2_name, robot2->_dq);
 	sim->setJointPositions(obj_name, object->_q);
-
-
-	// fill in object information 
-	for (int i = 0; i < n_objects; ++i) {
-		Vector3d _object_pos, _object_lin_vel, _object_ang_vel;
-		Quaterniond _object_ori;
-		sim->getObjectPosition(object_names[i], _object_pos, _object_ori);
-		sim->getObjectVelocity(object_names[i], _object_lin_vel, _object_ang_vel);
-		object_pos.push_back(_object_pos);
-		object_lin_vel.push_back(_object_lin_vel);
-		object_ori.push_back(_object_ori);
-		object_ang_vel.push_back(_object_ang_vel);
-	}
 
     // set co-efficient of restition to zero for force control
     sim->setCollisionRestitution(0.8);
@@ -284,18 +233,12 @@ int main() {
     redis_client.set(PREDICTION_READY_KEY, "0");
     redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
     redis_client.set(SHOOTING_ANGLE, "0");
-//    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-//    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
 	// start simulation thread
 	thread sim_thread(simulation, robot, robot2, object, sim, ui_force_widget, graphics);
 
 	// initialize glew
 	glewInitialize();
-
-	// add obj file once 
-//	string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
-//	addMesh(graphics, mesh_filename, Vector3d(0.2, -0.2, 0), Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
 
 	// while window is open:
 	int count = 0;
@@ -310,13 +253,6 @@ int main() {
             chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
             Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
             cout << "gravity: " << gra_g.transpose() << "\n";
-
-//            object->Jv(object_Jv, object_ee_link, object_ee_point);
-//            object->positionInWorld(curr_pos, object_ee_link, object_ee_point);
-//            sim->getJointVelocities(obj_name, curr_dq);
-//            curr_lin_vel = object_Jv * curr_dq;
-//            cout << "curr_vel_in_world:" << curr_lin_vel.transpose() << endl;
-//            cout << "current position" << curr_pos.transpose() << endl;
 
 		}
 
@@ -335,9 +271,7 @@ int main() {
 		graphics->updateGraphics(robot_name, robot);
         graphics->updateGraphics(robot2_name, robot2);
         graphics->updateGraphics(obj_name, object);
-		for (int i = 0; i < n_objects; ++i) {
-			graphics->updateObjectGraphics(object_names[i], object_pos[i], object_ori[i]);
-		}
+
 		//force_display->update();
 		graphics->render(camera_name, width, height);
 
@@ -448,8 +382,6 @@ int main() {
 
 	// wait for simulation to finish
 	fSimulationRunning = false;
-//	fSimulationLoopDone = false;
-//	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 	sim_thread.join();
 
 	// destroy context
@@ -500,9 +432,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
     const std::string true_message = "Detected";
     const std::string false_message = "Not Detected";
 
-    // setup redis client data container for pipeset (batch write) TODO: change the batch size
-    // std::vector<std::pair<std::string, std::string>> redis_data(10);  // set with the number of keys to write
-
     // setup white noise generator
     const double mean = 0.0;
     const double stddev = 0.001;  // tune based on your system
@@ -532,8 +461,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
     redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY_SHOOTER, robot2->_q);
     redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY_SHOOTER, robot2->_dq);
     redis_client.addEigenToWriteCallback(0, FUTURE_POS, object_future_pos);
-//	redis_client.addEigenToWriteCallback(0, BALL_POS, object_pos[0]);
-//	redis_client.addEigenToWriteCallback(0, SHOOTER_EE_POS_INWORLD, ee_pos_shooter_inworld);
 
 	// create a timer
 	LoopTimer timer;
@@ -552,13 +479,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 	// start simulation 
 	fSimulationRunning = true;	
 	while (fSimulationRunning) {
-        // fTimerDidSleep = timer.waitForNextLoop(); // commented out to let current simulation loop finish before next loop
-
 		// execute redis read callback
 		redis_client.executeReadCallback(0);
 
 		// set world gravity
-		// chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
+		// chai3d::cVector3d gravity_g = sim->_world->getGravity(); TODO: this may not work
         // Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
 		sim->_world->setGravity(graVec(0), graVec(1), graVec(2));
         VectorXd wind_torques(6);
@@ -638,12 +563,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             sim->getJointVelocities(obj_name, object->_dq);
             object->updateModel();
 
-            // get dynamic object positions
-            for (int i = 0; i < n_objects; ++i) {
-                sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
-                sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-            }
-
             // update force sensor readings
             force_sensor->update(sim);
             force_sensor->getForce(sensed_force);  // refer to ForceSensorSim.h in sai2-common/src/force_sensor (can also get wrt global frame)
@@ -651,25 +570,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             if (sensed_force.norm() > 0.6) {
                 redis_client.set(BALL_READY_KEY, "1");
                 redis_client.set(FALLING_KEY, "0");
-//                cout << redis_client_test.get(BALL_READY_KEY) << endl;
             }
             else redis_client.set(BALL_READY_KEY, "0");
-            if (counter % 1200 == 0) {
-//                std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose();
-//                std::cout << sensed_force.norm() << endl;
-            }
-
-            // print ball's info todo: delete, this is only for debug
-//            object->positionInWorld(curr_pos, object_ee_link, object_ee_point);
-//            object->Jv(object_Jv, object_ee_link, object_ee_point);
-//            curr_lin_vel = object_Jv * object->_dq;
-//              cout << "curr_vel_in_world:" << curr_lin_vel.transpose() << endl;
-//              cout << "current position" << curr_pos.transpose() << endl;
 
             // calculate future pos
             if (redis_client.get(PREDICTION_READY_KEY) == "1") {
-//                double time_duration = 0.8;
-//                double time_duration = 0.9;
                 object_future_pos = posPrediction(curr_pos, curr_lin_vel, object_lin_acc, curr_time, object, sim);
                 string mesh_filename = "../../model/test_objects/meshes/visual/basketball.obj";
 //                addSphere(graphics, "basketball", object_future_pos, Quaterniond(1, 0, 0, 0), 0.15, Vector4d(1, 1, 1, 1));
@@ -680,26 +585,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             robot->positionInWorld(camera_pos, "link7");
             robot->rotationInWorld(camera_ori, "link7");  // local to world frame
 
-            // object camera detect
-//            detect = cameraFOV(obj_pos, camera_pos, camera_ori, 1.0, M_PI/6);
-//            if (detect == true) {
-//                obj_pos(0) += dist(generator);  // add white noise
-//                obj_pos(1) += dist(generator);
-//                obj_pos(2) += dist(generator);
-//                redis_client.set(CAMERA_DETECT_KEY, true_message);
-//                redis_client.setEigenMatrixJSON(CAMERA_OBJ_POS_KEY, obj_pos);
-//            }
-//            else {
-//                redis_client.set(CAMERA_DETECT_KEY, false_message);
-//                redis_client.setEigenMatrixJSON(CAMERA_OBJ_POS_KEY, Vector3d::Zero());
-//            }
-
-            // simulation loop is done
-//            fSimulationLoopDone = true;
-
-            // ask for next control loop
-//            fControllerLoopDone = false;
-
             // publish all redis keys at once to reduce multiple redis calls that slow down simulation
             // shown explicitly here, but you can define a helper function to publish data
             redis_client.setEigenMatrixJSON(OBJ_JOINT_ANGLES_KEY, object->_q);
@@ -708,8 +593,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             redis_client.setEigenMatrixJSON(CAMERA_ORI_KEY, camera_ori);
             redis_client.setEigenMatrixJSON(EE_FORCE_KEY, sensed_force);
             redis_client.setEigenMatrixJSON(EE_MOMENT_KEY, sensed_moment);
-//            redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-//            redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone)); // ask for next control loop
 
             // execute redis write callback
             redis_client.executeWriteCallback(0);
@@ -719,9 +602,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
             reset_counter++;
             ++counter;
 		}
-
-		// read controller state
-//        fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
 	}
 
 	double end_time = timer.elapsedTime() / time_slowdown_factor;
@@ -830,10 +710,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object
     // read the gravity
     chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
     Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-//    Vector3d gra_g;
     cout << "read gravity: " << gra_g.transpose() << endl;
-//    gra_g(0) *= 0.000001;
-//    gra_g(1) *= 0.000001;
 
     // calculate and print out
     double time_step = 0.001;
@@ -848,7 +725,7 @@ Vector3d posPrediction(Vector3d curr_pos, Vector3d curr_lin_vel, Vector3d object
             break;
         }
     }
-//    object_future_pos << curr_pos + curr_lin_vel * time_duration + 0.5 * object_lin_acc * time_duration * time_duration;
+
     object_future_pos(2) = object_future_pos(2) + 1.06;
 
 //    if (object_future_pos(2) <= 0.15) object_future_pos(2) = 0.15;
@@ -877,93 +754,3 @@ Simulation::Sai2Simulation* sim) {
     chai3d::cVector3d ang_vel_chai(ang_vel(0), ang_vel(1), ang_vel(2));
     object->m_dynamicJoints[3]->setVelSpherical(ang_vel_chai);
 }
-
-//------------------------------------------------------------------------------
-
-bool string_to_bool(const std::string& x) {
-    assert(x == "false" || x == "true");
-    return x == "true";
-}
-
-//------------------------------------------------------------------------------
-
-inline const char * const bool_to_string(bool b)
-{
-    return b ? "true" : "false";
-}
-
-//------------------------------------------------------------------------------
-/**
-     * @brief Boolean check if specified object is inside camera fov.
-     * @param object_pos Object position in world frame.
-     * @param camera_pos Camera position in world frame.
-     * @param camera_ori Camera DCM matrix from local to world frame.
-     * @param radius Camera detection radius.
-     * @param fov_angle Camera FOV angle
-     */
-
-bool cameraFOV(Vector3d object_pos, Vector3d camera_pos, Matrix3d camera_ori, double radius, double fov_angle) {
-    // init
-    Vector3d a, b, c, d;
-    // Vector3d normal = camera_ori.col(2);  // normal vector in world frame
-
-    // local camera frame vertex coordinates
-    Vector3d v1, v2, v3;
-    v1 << 0, -radius*tan(fov_angle), radius;
-    v2 << radius*tan(fov_angle)*cos(M_PI/6), radius*tan(fov_angle)*sin(M_PI/6), radius;
-    v3 << -radius*tan(fov_angle)*cos(M_PI/6), radius*tan(fov_angle)*sin(M_PI/6), radius;
-
-    // world frame vertex coordinates centered at the object
-    a = camera_pos - object_pos;
-    b = camera_pos + camera_ori*v1 - object_pos;
-    c = camera_pos + camera_ori*v2 - object_pos;
-    d = camera_pos + camera_ori*v3 - object_pos;
-
-    // calculate if object position is inside tetrahedron
-    vector<double> B(4);
-    B.at(0) = ( -1*(b(0)*c(1)*d(2) - b(0)*c(2)*d(1) - b(1)*c(0)*d(2) + b(1)*c(2)*d(0) + b(2)*c(0)*d(1) - b(2)*c(1)*d(0)) );
-    B.at(1) = ( a(0)*c(1)*d(2) - a(0)*c(2)*d(1) - a(1)*c(0)*d(2) + a(1)*c(2)*d(0) + a(2)*c(0)*d(1) - a(2)*c(1)*d(0) );
-    B.at(2) = ( -1*(a(0)*b(1)*d(2) - a(0)*b(2)*d(1) - a(1)*b(0)*d(2) + a(1)*b(2)*d(0) + a(2)*b(0)*d(1) - a(2)*b(1)*d(0)) );
-    B.at(3) = ( a(0)*b(1)*c(2) - a(0)*b(2)*c(1) - a(1)*b(0)*c(2) + a(1)*b(2)*c(0) + a(2)*b(0)*c(1) - a(2)*b(1)*c(0) );
-    double detM = B.at(0) + B.at(1) + B.at(2) + B.at(3);
-
-    // sign check
-    bool test;
-    for (int i = 0; i < B.size(); ++i) {
-        test = compareSigns(detM, B.at(i));
-        if (test == false) {
-            return false;
-        }
-    }
-    return true;
-}
-
-//------------------------------------------------------------------------------
-
-bool compareSigns(double a, double b) {
-    if (a > 0 && b > 0) {
-        return true;
-    }
-    else if (a < 0 && b < 0) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-//------------------------------------------------------------------------------
-
-bool limitCheck(double a, double b) {
-    if (a > 0 && b > 0) {
-        return true;
-    }
-    else if (a < 0 && b < 0) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-
