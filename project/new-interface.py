@@ -3,6 +3,9 @@ import time
 import subprocess
 import math
 import signal
+import pygame.mixer
+from pygame.mixer import Sound
+
 
 # importing libraries for interface
 import tkinter as tk
@@ -68,7 +71,6 @@ launch_button = None
 power_counter = 0
 joystick_process = None
 
-
 def run():
     global joystick_process
     simviz_process = subprocess.Popen(["./simviz"])
@@ -95,6 +97,9 @@ def run():
     # Set the signal handler
     signal.signal(signal.SIGINT, ctrl_c)
 
+def play_sound(sound_file):
+    sound = Sound(sound_file)
+    sound.play()
 
 def button_function():
     global app
@@ -102,6 +107,7 @@ def button_function():
     global main_frame
     intro_frame.place_forget()  # remove login frame
     print("pressed")
+    play_sound("button-3.wav")
     main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
 
     r.set(RUN_KEY, "1")
@@ -114,6 +120,7 @@ def intro_button_function():
     start_frame.place_forget()  # remove login frame
     intro_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # show main frame
     r.set(PRESS_START_KEY, "1")
+    play_sound("button-3.wav")
 
 
 def check_redis_keys(keys, app):
@@ -213,6 +220,9 @@ def launch_function():
 
 
 def main():
+    pygame.mixer.init()
+    pygame.mixer.music.load("bgm.mp3")
+    pygame.mixer.music.play(-1)
     # declaim the global var
     global app
     global power
