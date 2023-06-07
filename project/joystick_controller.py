@@ -54,7 +54,7 @@ def main():
                         r.set(BALL_SHOOT_READY_KEY, "1")
                         print("ball's ready to be shot")
                         if (r.get(PRESS_START_KEY).decode() == "1") & (r.get(CONTINUE_KEY).decode() == "1"):
-                            play_sound("button-2.wav")
+                            play_sound("swoosh.wav")
                         # Vibrate the controller for 1 second
                         # joystick.set_vibration(1.0, 1.0, 1000)
                 elif event.button == 2:

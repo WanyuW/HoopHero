@@ -293,8 +293,8 @@ int main() {
                     x_init_desired(2) = 0.9; // initial position
 
                     // turn on velocity limit when initializing
-                    posori_task->_use_interpolation_flag = true;
-                    posori_task->_otg->setMaxLinearVelocity(5000);
+                    posori_task->_use_velocity_saturation_flag = true;
+                    posori_task->_linear_saturation_velocity = 3.5;
 
                     posori_task->_desired_position = x_init_desired;
                     base_task->_desired_position = base_pose_init_desired;
@@ -370,7 +370,9 @@ int main() {
                     robot->positionInWorld(ee_pos_inworld, "link7");
 
                     // turn off velocity limit when reaching
-                    posori_task->_use_interpolation_flag = false;
+//                    posori_task->_use_interpolation_flag = false;
+                    posori_task->_use_velocity_saturation_flag = true;
+                    posori_task->_linear_saturation_velocity = 10;
 
                     posori_task->_desired_position = x_desired;
                     base_task->_desired_position = base_pose_init_desired;
