@@ -70,6 +70,7 @@ shooting_angle_input = ""
 launch_button = None
 power_counter = 0
 joystick_process = None
+score_label = None
 
 def run():
     global joystick_process
@@ -130,6 +131,7 @@ def check_redis_keys(keys, app):
     global switch1
     global switch2
     global switch3
+    global score_label
 
     for key, value in keys.items():
         if r.exists(key):
@@ -166,6 +168,10 @@ def check_redis_keys(keys, app):
         switch_event3()
     else:
         switch_event1()
+
+    score_text = r.get(SCORE).decode()
+    score_label.configure(text=score_text)
+    score_label.update()
 
     # Schedule the next Redis key retrieval after a certain interval
     app.after(1, check_redis_keys, keys, app)  # Adjust the interval as needed
@@ -235,6 +241,7 @@ def main():
     global angle_canvas, angle_line, angle_text, angle_label
     global intro_frame
     global joystick_process
+    global score_label
 
     # init keys
     r.set(SHOOTER_POWER, "0.5")
@@ -244,6 +251,8 @@ def main():
     r.set(GRAVITY_KEY, str([0.0, 0.0, -9.81]))
     r.set(PRESS_START_KEY, "0")
     r.set(CONTINUE_KEY, "0")
+    r.set(SCORE, "0")
+    r.set(CHECK_SPOT, "0")
 
     # Launch the joystick_controller.py script
     joystick_process = subprocess.Popen(["python3", "joystick_controller.py"])
@@ -303,6 +312,12 @@ def main():
     angle_text = str(shooting_angle) + u"\u00b0"
     angle_label = ctk.CTkLabel(main_frame, text=angle_text, font=('Berlin Sans FB Demi', 60), bg_color="#2e1b5b", text_color="white")
     angle_label.place(relx=0.25, rely=0.7, anchor=tk.CENTER)
+
+    # score module
+    score_text = r.get(SCORE).decode()
+    score_label = ctk.CTkLabel(main_frame, text=score_text, font=('Berlin Sans FB Demi', 60), bg_color="#2e1b5b",
+                               text_color="white")
+    score_label.place(relx=0.08, rely=0.7, anchor=tk.CENTER)
 
     # create start frame
     start_frame = ctk.CTkFrame(app, corner_radius=0)

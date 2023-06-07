@@ -57,6 +57,8 @@ const std::string SHOOTER_SET_STATE = "sai2::shooter::set_state";
 const std::string GRAVITY_KEY = "sai2::sim::world_gravity";
 const std::string EE_FORCE_KEY = "cs225a::sensor::force";
 const std::string EE_MOMENT_KEY = "cs225a::sensor::moment";
+const std::string SCORE = "sim::game::score";
+const std::string CHECK_SPOT = "sim::game::check_spot_with_target";
 
 
 

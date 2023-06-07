@@ -56,6 +56,8 @@ EE_FORCE_KEY = "cs225a::sensor::force"
 EE_MOMENT_KEY = "cs225a::sensor::moment"
 PRESS_START_KEY = "sim::start"
 CONTINUE_KEY = "sim::continue"
+SCORE = "sim::game::score"
+CHECK_SPOT = "sim::game::check_spot_with_target"
 
 
 

@@ -284,6 +284,8 @@ int main() {
                 }
                 else if (hoop_state == HOOP_INITIALIZE) {
 
+                    if (redis_client.get(CHECK_SPOT) == "1") redis_client.set(CHECK_SPOT, "0");
+
                     //initialize timer before each task
                     timer.initializeTimer();
 
@@ -372,7 +374,7 @@ int main() {
                     // turn off velocity limit when reaching
 //                    posori_task->_use_interpolation_flag = false;
                     posori_task->_use_velocity_saturation_flag = true;
-                    posori_task->_linear_saturation_velocity = 10;
+                    posori_task->_linear_saturation_velocity = 20;
 
                     posori_task->_desired_position = x_desired;
                     base_task->_desired_position = base_pose_init_desired;
@@ -400,7 +402,8 @@ int main() {
                         arm_joint_task->reInitializeTask();
                         posori_task->reInitializeTask();
                         redis_client.setEigenMatrixJSON(HOOP_EE_POS, ee_pos);
-                        if (sleep_counter < 2000) {
+                        if (redis_client.get(CHECK_SPOT) == "0") redis_client.set(CHECK_SPOT, "1");
+                        if (sleep_counter < 1200) {
                             sleep_counter++;
                             }
                         else {
