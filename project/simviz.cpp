@@ -18,6 +18,7 @@
 #include "force_sensor/ForceSensorDisplay.h"
 #include <signal.h>
 #include <iostream>
+#include <random>
 
 // flags for simulation and controller states
 bool fSimulationRunning = false;
@@ -40,7 +41,7 @@ const string base_link_name = "link0";
 const string ee_link_name = "link7";
 const string sensor_link_name = "link7";
 
-// basketball - please work
+// basketball
 const string obj_file = "./resources/ball.urdf";
 const string obj_name = "ball";
 
@@ -54,6 +55,13 @@ Vector3d object_ee_point = Vector3d(0, 0, 0);
 VectorXd object_acc(6);
 Vector3d object_lin_acc;
 
+// target
+string target_name = "target";
+Vector3d target_pos = Vector3d(0, 4.5, 0.05);
+Quaterniond target_ori = Quaterniond(1, 0, 0, 0);
+Vector3d target_dim = Vector3d(0.05, 0.05, 0.05);
+Vector4d target_rgba = Vector4d(1, 0.5, 0.5, 1);
+
 // force sensor
 ForceSensorSim* force_sensor;
 
@@ -63,6 +71,14 @@ ForceSensorDisplay* force_display;
 // redis client 
 RedisClient redis_client;
 RedisClient redis_client_test;
+
+// Create a random number generator engine
+std::random_device rd;
+std::mt19937 gen(rd());
+
+// Generate a random real number between 0 and 2
+std::uniform_real_distribution<double> x_dist(-2.5, 2.5);
+std::uniform_real_distribution<double> y_dist(1.5, 4);
 
 /* Edited functions from collision demo */
 // simulation thread
@@ -101,6 +117,7 @@ bool fRobotLinkSelect = false;
 bool fshowCameraPose = false;
 
 int main() {
+//    cout << randomNumber << endl;
 	cout << "Loading URDF world model file: " << world_file << endl;
 
 	// start redis client
@@ -160,6 +177,9 @@ int main() {
     auto object = new Sai2Model::Sai2Model(obj_file, false, T_world_object);
     // object->_q(1) = 2.5;
     object->updateModel();
+
+    // load target once todo: addbox
+    addBox(graphics, target_name, target_pos, target_ori, target_dim, target_rgba);
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
@@ -248,12 +268,10 @@ int main() {
 	{
 		// add sphere for every nth count
 		if (count % 120 == 0) {  // default refresh rate
-
             // get world gravity
             chai3d::cVector3d gravity_g = sim->_world->getGravity(); // gravity
             Vector3d gra_g(gravity_g.x(), gravity_g.y(), gravity_g.z());
-            cout << "gravity: " << gra_g.transpose() << "\n";
-
+            // cout << "gravity: " << gra_g.transpose() << "\n";
 		}
 
 		// get ball's info
@@ -558,6 +576,12 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 sim->setJointVelocities(obj_name, reset_ball_vel);
                 redis_client.set(RESET_KEY, "0");
                 redis_client.set(FALLING_KEY, "1");
+
+                // refresh target
+//                target_pos(1) += count / 120;
+                target_pos(0) = x_dist(gen);
+                target_pos(1) = y_dist(gen);
+                graphics->updateObjectGraphics(target_name, target_pos, target_ori);
             }
             sim->getJointPositions(obj_name, object->_q);
             sim->getJointVelocities(obj_name, object->_dq);
