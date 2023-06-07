@@ -57,10 +57,10 @@ Vector3d object_lin_acc;
 
 // target
 string target_name = "target";
-Vector3d target_pos = Vector3d(0, 4.5, 0.05);
+Vector3d target_pos = Vector3d(0, 2, 0.1);
 Quaterniond target_ori = Quaterniond(1, 0, 0, 0);
-Vector3d target_dim = Vector3d(0.05, 0.05, 0.05);
-Vector4d target_rgba = Vector4d(1, 0.5, 0.5, 1);
+Vector3d target_dim = Vector3d(0.3, 0.3, 0.3);
+Vector4d target_rgba = Vector4d(1, 0.33, 0.33, 1);
 
 // force sensor
 ForceSensorSim* force_sensor;
@@ -77,8 +77,12 @@ std::random_device rd;
 std::mt19937 gen(rd());
 
 // Generate a random real number between 0 and 2
-std::uniform_real_distribution<double> x_dist(-2.5, 2.5);
-std::uniform_real_distribution<double> y_dist(1.5, 4);
+std::uniform_real_distribution<double> x_dist(-1.5, 1.5);
+std::uniform_real_distribution<double> y_dist(2, 4);
+
+// score variables
+string score_text = "0";
+int score_value = 0;
 
 /* Edited functions from collision demo */
 // simulation thread
@@ -253,6 +257,7 @@ int main() {
     redis_client.set(PREDICTION_READY_KEY, "0");
     redis_client.setEigenMatrixJSON(FUTURE_POS, object_future_pos);
     redis_client.set(SHOOTING_ANGLE, "0");
+    redis_client.set(SCORE, "0");
 
 	// start simulation thread
 	thread sim_thread(simulation, robot, robot2, object, sim, ui_force_widget, graphics);
@@ -567,6 +572,19 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
 
             // update object
             if (redis_client.get(RESET_KEY) == "1") {
+                float target_distance;
+                target_distance = sqrt(pow((object_future_pos(0) - target_pos(0)), 2) + pow(object_future_pos(1) - target_pos(1), 2));
+                if (target_distance <= 0.4) {
+                    score_value += 1;
+                    score_text = to_string(score_value);
+                    redis_client.set(SCORE, score_text);
+
+                    // refresh target
+//                target_pos(1) += count / 120;
+                    target_pos(0) = x_dist(gen);
+                    target_pos(1) = y_dist(gen);
+                    graphics->updateObjectGraphics(target_name, target_pos, target_ori);
+                }
                 VectorXd reset_ball_pos = object->_q;
                 VectorXd reset_ball_vel = VectorXd::Zero(dof_obj);
                 reset_ball_pos(0) = 0.0;
@@ -576,12 +594,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* robot2, Sai2M
                 sim->setJointVelocities(obj_name, reset_ball_vel);
                 redis_client.set(RESET_KEY, "0");
                 redis_client.set(FALLING_KEY, "1");
-
-                // refresh target
-//                target_pos(1) += count / 120;
-                target_pos(0) = x_dist(gen);
-                target_pos(1) = y_dist(gen);
-                graphics->updateObjectGraphics(target_name, target_pos, target_ori);
             }
             sim->getJointPositions(obj_name, object->_q);
             sim->getJointVelocities(obj_name, object->_dq);
