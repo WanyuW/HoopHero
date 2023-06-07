@@ -22,7 +22,7 @@
 	    <visual>
 	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 3.1415926" />
 	        <geometry>
-                <mesh filename="../../model/mmp_panda/meshes/visual/court_rev4.obj" scale = "1 1 1" />
+                <mesh filename="../../model/mmp_panda/meshes/visual/court_rev5.obj" scale = "1 1 1" />
 	        </geometry>
 	    </visual>
 
